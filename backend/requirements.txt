@@ -1,0 +1,19 @@
+# LLM CLI V3 后端依赖
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+sse-starlette>=1.8.0
+
+# 原有依赖
+openai>=1.0.0
+PyYAML>=6.0.1
+pytz>=2023.3
+
+# CLI 输入
+prompt_toolkit>=3.0.0
+
+# QuickJS
+quickjs>=1.19.4
+
+# DI 框架
+injector>=0.24.0

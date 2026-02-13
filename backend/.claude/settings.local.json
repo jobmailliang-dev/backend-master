@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(timeout 5:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat\\(config\\): 添加 skill_metadata 配置支持\n\n- 新增 SkillMetadata 数据类用于技能元数据\n- AppConfig 新增 skill_metadata 字段和 get_skill_metadata_dict\\(\\) 方法\n- loader.py 新增 _parse_skill_metadata\\(\\) 解析函数\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(python:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.microsoft.com)",
+      "mcp__Playwright__browser_navigate",
+      "mcp__Playwright__browser_fill_form",
+      "mcp__Playwright__browser_click",
+      "mcp__Playwright__browser_network_requests",
+      "mcp__Playwright__browser_type",
+      "mcp__Playwright__browser_close",
+      "Bash(py -m pip install:*)",
+      "Bash(pip install:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

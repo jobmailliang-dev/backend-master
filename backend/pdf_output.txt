@@ -1,0 +1,19 @@
+1 pages
+
+Page 1:
+使用说明
+解压本工具，存放到合适的位置，工具存放路径不要有汉字和空格
+1、打开文件 scripts 文件
+2、根据自己的电脑系统，选择对应的脚本，Windows 执行 install-current-user.vbs，Linux/Mac
+用户执行 install.sh，根据弹窗提示，是否执行，点击确认，等待 5s 左右，看到“Done”，表
+示激活成功
+3 、 重 新 打 开 IDE （ 必 须 重 新 启 动 ） ， 输 入 激 活 码 ， 即 可 激 活 ， 激 活 码 下 载 ：
+http://jets.idejihuo.com/
+点击确认进入 IDE 界面，没有弹窗退出，表示激活成功，如果提示激活码失效，说明工具么
+有生效，请看详细教程中注意事项，检查自己是否遗漏具体步骤
+详细教程：
+http://blog.idejihuo.com/jetbrains/intellij-idea-2022-1-3-hack-tutorial-permanent-activation-tuto
+rial.html
+说明：本次工具支持 2021.3 以后版本（ 2021.3.1，2021.3.2，2021.3.3，2022.1，2022.1.1，
+2022.1.2，2022.1.3）的 IDE 使用
+如遇到问题，请联系我！
