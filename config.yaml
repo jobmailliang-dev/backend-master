@@ -1,0 +1,61 @@
+# LLM CLI v2 Configuration
+
+llm:
+  provider: openai
+
+# OpenAI API Configuration
+openai:
+  api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: "sk-dedab808e1a64810833d8e0a3d7b88c8"
+  model: "glm-4.7"
+  max_tokens: 1000
+  temperature: 0.7
+  use_stream: true
+  system_message: "You are a helpful assistant with access to tools. Use tools when necessary to provide accurate information."
+
+# qwen api configuration
+qwen:
+  # api_url: "http://192.168.20.220:11434/v1"
+  # api_key: ""
+  # model: "qwen3:8b"
+  api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: "sk-dedab808e1a64810833d8e0a3d7b88c8"
+  model: "qwen3-8b"
+  max_tokens: 1000
+  temperature: 0.7
+  use_stream: true
+  enable_thinking: true
+  thinking_budget: 4000
+  system_message: "You are a helpful assistant with access to tools. Use tools when necessary to provide accurate information."
+
+
+
+# Tool Calling Configuration
+tools:
+  allowed_tools:
+    - skill
+    - read_file
+    - bash
+  max_tool_calls: 100
+  show_tool_calls: true
+
+# CLI Settings
+cli:
+  title: LLM CLI V4 - Chat with AI
+  user_prefix: "You"
+  ai_prefix: "AI"
+  exit_command: "exit"
+  show_system: false
+
+# Database Configuration
+database:
+  path: "data/app.db"
+
+# System Metadata (supports any key-value pairs, {time} placeholder available)
+system_metadata:
+  current_time: "{time}"
+  login_user: admin
+  current_shell_environment: windows
+  cps_base_url: http://192.168.20.238/api
+  cps_authorization: Basic c2FiZXI6c2FiZXJfc2VjcmV0
+  cps_access_token: bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpc3N1c2VyIiwiYXVkIjoiYXVkaWVuY2UiLCJ0ZW5hbnRfaWQiOiIwMDAwMDAiLCJ1c2VyX25hbWUiOiJhZG1pbiIsInJlYWxfbmFtZSI6ImFkbWluIiwidG9rZW5fdHlwZSI6ImFjY2Vzc190b2tlbiIsInJvbGVfbmFtZSI6ImFkbWluaXN0cmF0b3IsIiwicG9zdF9pZCI6IjE5NDAzMTE0NDQ2NTE3NDExODYiLCJ1c2VyX2lkIjoiMTEyMzU5ODgyMTczODY3NTIwMSIsInJvbGVfaWQiOiIxMTIzNTk4ODE2NzM4Njc1MjAxLDE5NTEyMjgwNDgyMDU4MTU4MDkiLCJuaWNrX25hbWUiOiJhZG1pbiIsImRldGFpbCI6eyJ0eXBlIjoid2ViIn0sImRlcHRfaWQiOiIxMTIzNTk4ODEzNzM4Njc1MjAxIiwiYWNjb3VudCI6ImFkbWluIiwiY2xpZW50X2lkIjoic2FiZXIiLCJleHAiOjE3NzI2ODg4OTQsIm5iZiI6MTc3MDA5Njg5NH0.p-mAYXecwpyUJa-fB0gBZQ6bnPt-gQmytbccQg0lZVc

@@ -1,15 +1,15 @@
-[根目录](../../CLAUDE.md) > [llm-cli-v3](../) > **backend**
+[根目录](../../CLAUDE.md) > [backend-master](../) > **backend**
 
-# CLAUDE.md
+# WIMI CHAT - 后端核心模块
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
 
 ## 模块职责
 
-Backend 模块是 LLM CLI V3 的核心后端服务，提供：
+Backend 模块是 WIMI CHAT 的核心后端服务，提供：
 
 - **Web 服务**: FastAPI 服务，支持 SSE 流式响应
-- **LLM 客户端**: 集成 OpenAI 兼容 API，处理对话和工具调用
+- **LLM 客户端**: 集成 OpenAI/Qwen 兼容 API，处理对话和工具调用
 - **工具系统**: 可扩展的工具注册和执行框架
 - **技能系统**: 动态加载和执行技能内容
 
@@ -37,9 +37,10 @@ flake8 src/            # 代码检查
 
 | 端点 | 方法 | 描述 |
 |------|------|------|
-| `/chat` | POST | 同步聊天 |
-| `/chat/stream` | GET | SSE 流式聊天 |
-| `/health` | GET | 健康检查 |
+| `/api/chat` | POST | 同步聊天 |
+| `/api/chat/stream` | GET | SSE 流式聊天 |
+| `/api/health` | GET | 健康检查 |
+| `/api/tools` | GET/POST/PUT/DELETE | 工具管理 |
 
 ### SSE 事件
 
@@ -452,3 +453,10 @@ logger.info(f"[tool_create] id={tool_id}, body={body_str}")
 | `pyproject.toml` | 项目配置 |
 
 **参考模板**：`src/modules/tools/` 目录下的 models.py → dtos.py → dao.py → service.py → api/tools.py
+
+## 变更记录 (Changelog)
+
+| 时间戳 | 操作 | 说明 |
+|--------|------|------|
+| 2026-02-03 11:32:16 | 初始化 | 首次生成 AI 上下文文档 |
+| 2026-02-17 22:00:00 | 更新 | 更新为 WIMI CHAT 项目文档 |

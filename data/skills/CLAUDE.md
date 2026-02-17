@@ -1,10 +1,10 @@
-[根目录](../../CLAUDE.md) > [llm-cli-v3](../) > **data/skills**
+[根目录](../../CLAUDE.md) > [backend-master](../) > **data/skills**
 
-# Skills 模块
+# WIMI CHAT - 技能模块
 
 ## 模块职责
 
-Skills 模块是 LLM CLI V3 的技能数据目录，提供领域特定的预定义上下文内容。技能以 Markdown 格式存储，支持 YAML frontmatter 定义元数据，可被 LLM 在对话中动态加载和调用。
+Skills 模块是 WIMI CHAT 的技能数据目录，提供领域特定的预定义上下文内容。技能以 Markdown 格式存储，支持 YAML frontmatter 定义元数据，可被 LLM 在对话中动态加载和调用。
 
 每个技能代表一个特定领域的知识或操作指南，如 PDF 处理、订单管理、工作站信息等。
 
@@ -252,3 +252,4 @@ allowed_tools:
 | 时间戳 | 操作 | 说明 |
 |--------|------|------|
 | 2026-02-03 11:32:16 | 初始化 | 首次生成模块 AI 上下文文档 |
+| 2026-02-17 22:00:00 | 更新 | 更新为 WIMI CHAT 项目文档 |

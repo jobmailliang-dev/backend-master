@@ -13,6 +13,7 @@ from src.modules import ToolService, get_injector
 from src.modules.base import ValidException, ApiException
 from src.modules.tools.dtos import ToolDto
 from src.utils.logging_web import get_request_logger
+from src.utils.script_wrapper import wrap_javascript_code
 from src.utils.stream_writer_util import create_queue_task, send_queue
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
@@ -112,6 +113,7 @@ async def execute_tool(
     from src.tools.registry import get_registry
 
     params = request.get("params", {}) if request else {}
+    user_info = request.get("user_info", {}) if request else {}
 
     # 1. 调用 service.get_one 获取工具定义
     tool_data: ToolDto = _tool_service.get_one(id)
@@ -123,22 +125,7 @@ async def execute_tool(
         raise ValidException("tool is not active")
 
     # 2. 组装 JavaScript 脚本
-    # 检查 code 是否包含 function execute
-    if "function execute" in tool_data.code:
-        # 包含 execute 函数，包装执行
-        # context = { args: {前端传过来的json对象} }
-        # {tool.code}
-        # return execute(context);
-        script = f"""\
-const context = {{
-  args: {json.dumps(params, ensure_ascii=False)}
-}};
-{tool_data.code}
-return execute(context);
-"""
-    else:
-        # 不包含 function execute，直接使用 code 作为脚本
-        script = tool_data.code
+    script = wrap_javascript_code(tool_data.code, params, user_info, tool_data.inherit_from)
 
     # 3. 调用 quickjs_tool 执行拼接的脚本
     registry = get_registry()
@@ -166,12 +153,13 @@ return execute(context);
         })
 
 
-async def _execute_tool_stream(id: int, params: dict) -> None:
+async def _execute_tool_stream(id: int, params: dict, user_info: dict = None) -> None:
     """执行工具并流式发送日志和结果。
 
     Args:
         id: 工具 ID
         params: 执行参数
+        user_info: 用户信息
     """
     from src.tools.registry import get_registry
 
@@ -199,16 +187,7 @@ async def _execute_tool_stream(id: int, params: dict) -> None:
         }, "status")
 
         # 2. 组装 JavaScript 脚本
-        if "function execute" in tool_data.code:
-            script = f"""\
-const context = {{
-  args: {json.dumps(params, ensure_ascii=False)}
-}};
-{tool_data.code}
-return execute(context);
-"""
-        else:
-            script = tool_data.code
+        script = wrap_javascript_code(tool_data.code, params, user_info, tool_data.inherit_from)
 
         # 3. 调用 quickjs_tool 执行脚本
         registry = get_registry()
@@ -267,9 +246,10 @@ async def execute_tool_stream(
     支持实时推送 console.log/warn/error 输出到前端。
     """
     params = request.get("params", {}) if request else {}
+    user_info = request.get("user_info", {}) if request else {}
 
     # 创建异步任务
-    queue = create_queue_task(_execute_tool_stream, id, params)
+    queue = create_queue_task(_execute_tool_stream, id, params, user_info)
 
     async def generate_stream() -> AsyncGenerator[str, None]:
         """从队列中读取数据并生成 SSE 事件。"""

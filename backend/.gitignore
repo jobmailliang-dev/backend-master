@@ -53,6 +53,11 @@ data/*.db
 .env.local
 *.local
 
+# Environment-specific config files (sensitive)
+config.dev.yaml
+config.prod.yaml
+config.local.yaml
+
 # Node (frontend)
 node_modules/
 npm-debug.log*
@@ -70,3 +75,4 @@ build/
 .coverage
 htmlcov/
 .tox/
+pyproject.toml

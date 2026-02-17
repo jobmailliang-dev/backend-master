@@ -52,18 +52,15 @@ class CLIConfig:
 
 
 @dataclass
-class SystemMetadata:
-    """系统元数据配置，支持任意参数。"""
-    extra: Dict[str, str] = field(default_factory=dict)
-
-    def get_metadata_dict(self) -> Dict[str, str]:
-        """获取元数据字典。"""
-        return self.extra.copy()
+class ServerConfig:
+    """服务器配置。"""
+    host: str = "0.0.0.0"
+    port: int = 8000
 
 
 @dataclass
-class SkillMetadata:
-    """技能元数据配置，支持任意参数。"""
+class SystemMetadata:
+    """系统元数据配置，支持任意参数。"""
     extra: Dict[str, str] = field(default_factory=dict)
 
     def get_metadata_dict(self) -> Dict[str, str]:
@@ -79,17 +76,11 @@ class AppConfig:
     qwen: Optional[QwenConfig] = None
     tools: Optional[ToolsConfig] = None
     cli: Optional[CLIConfig] = None
+    server: Optional[ServerConfig] = None
     system_metadata: Optional[SystemMetadata] = None
-    skill_metadata: Optional[SkillMetadata] = None
 
     def get_system_metadata_dict(self) -> Dict[str, str]:
         """获取系统元数据字典。"""
         if self.system_metadata:
             return self.system_metadata.get_metadata_dict()
-        return {}
-
-    def get_skill_metadata_dict(self) -> Dict[str, str]:
-        """获取技能元数据字典。"""
-        if self.skill_metadata:
-            return self.skill_metadata.get_metadata_dict()
         return {}

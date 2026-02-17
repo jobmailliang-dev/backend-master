@@ -23,7 +23,6 @@ class SkillExecutor:
         self.loader = loader or SkillLoader()
         self._skill_cache: Dict[str, Skill] = {}
         self._system_metadata: Optional[Dict[str, str]] = None
-        self._skill_metadata: Optional[Dict[str, str]] = None
 
     def execute(self, skill_name: str, args: Dict[str, Any] = None) -> str:
         """执行技能。
@@ -77,16 +76,6 @@ class SkillExecutor:
                 self._system_metadata = {}
         return self._system_metadata
 
-    def _get_skill_metadata(self) -> Dict[str, str]:
-        """获取技能元数据（懒加载）。"""
-        if self._skill_metadata is None:
-            try:
-                config = load_config()
-                self._skill_metadata = config.get_skill_metadata_dict()
-            except Exception:
-                self._skill_metadata = {}
-        return self._skill_metadata
-
     def _format_content(self, skill: Skill, args: Dict[str, Any]) -> str:
         """格式化技能内容，替换占位符。"""
         content = skill.content
@@ -95,9 +84,9 @@ class SkillExecutor:
         from pathlib import Path
         skill_dir = str(Path(skill.file_path).parent)
 
-        # 合并技能元数据、skill_dir 与用户参数，用户参数优先级更高
+        # 合并系统元数据、skill_dir 与用户参数，用户参数优先级更高
         merged_args = {
-            **self._get_skill_metadata(),
+            **self._get_system_metadata(),
             'skill_dir': skill_dir,
             **args,
         }

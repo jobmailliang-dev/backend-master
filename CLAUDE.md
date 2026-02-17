@@ -1,48 +1,47 @@
-# CLAUDE.md
+# WIMI CHAT - 后端模块
 
-本文档为 Claude Code 提供 llm-cli-v3 项目的上下文和开发指导。
+[根目录](../CLAUDE.md) > **backend-master**
 
 ## 项目愿景
 
-**LLM CLI V3** - 支持 Web 和 CLI 双模式的 AI 聊天应用。基于 llm-cli-v2 重构，添加 FastAPI 后端和 Vue.js 前端，支持 SSE 流式响应。
+**WIMI CHAT** - 支持 Web 和 CLI 双模式的 AI 聊天应用。基于 FastAPI 后端和 Vue.js 前端，支持 SSE 流式响应、工具调用、技能系统。
 
 ## 架构总览
 
 ```
-llm-cli-v3/
+backend-master/
 ├── backend/              # FastAPI 后端
 │   ├── src/
 │   │   ├── api/          # API 路由层
 │   │   │   ├── chat.py   # 聊天接口 (REST + SSE)
-│   │   │   └── health.py # 健康检查
+│   │   │   ├── health.py # 健康检查
+│   │   │   └── models.py # 通用 API 响应模型
 │   │   ├── web/          # Web 专用模块
 │   │   │   ├── sse.py    # SSE 流式处理
 │   │   │   └── cors.py   # CORS 配置
-│   │   ├── cli/          # CLI 交互层 (复用 v2)
-│   │   ├── core/         # 核心业务逻辑 (复用 v2)
-│   │   ├── tools/        # 工具系统 (复用 v2)
-│   │   ├── skills/       # 技能系统 (复用 v2)
-│   │   ├── adapters/     # API 适配器 (复用 v2)
-│   │   ├── config/       # 配置管理 (复用 v2)
-│   │   ├── utils/        # 通用工具 (复用 v2)
+│   │   ├── core/         # 核心业务逻辑
+│   │   │   ├── client.py # LLM 客户端
+│   │   │   └── session.py # 会话管理
+│   │   ├── tools/        # 工具系统
+│   │   │   ├── registry.py    # 工具注册表
+│   │   │   ├── base.py       # BaseTool 抽象基类
+│   │   │   └── builtins/      # 内置工具
+│   │   ├── skills/       # 技能系统
+│   │   ├── modules/      # 业务模块（依赖注入）
+│   │   ├── adapters/     # LLM 适配器
+│   │   ├── config/       # 配置管理
+│   │   ├── utils/        # 通用工具
 │   │   └── __main__.py   # 应用入口 (CLI/Web 双模式)
 │   ├── static/           # 前端构建产物
-│   └── requirements.txt  # 依赖
-├── frontend/             # Vue.js 前端
-│   ├── src/
-│   │   ├── api/          # API 调用封装
-│   │   ├── components/   # UI 组件
-│   │   ├── stores/       # Pinia 状态管理
-│   │   ├── composables/  # 组合式函数
-│   │   ├── types/        # 类型定义
-│   │   ├── assets/       # 静态资源
-│   │   ├── App.vue       # 根组件
-│   │   └── main.ts       # 入口文件
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── tailwind.config.js
-├── data/                 # 技能数据 (复用 v2)
-└── config.yaml           # 配置文件
+│   ├── data/             # 运行时数据
+│   ├── tests/            # 单元测试
+│   ├── logs/             # 日志文件
+│   ├── requirements.txt  # 依赖
+│   ├── pyproject.toml    # 项目配置
+│   └── config.yaml       # 配置文件
+├── data/                 # 技能数据
+│   └── skills/           # 技能目录
+└── config.yaml           # 配置文件（链接到 backend）
 ```
 
 ## 运行与开发
@@ -58,15 +57,6 @@ python -m src --cli        # CLI 模式
 python -m src --port 8080  # 指定端口
 ```
 
-### 前端 (开发模式)
-
-```bash
-cd frontend
-npm install
-npm run dev                # 开发服务器 (端口 3000)
-npm run build             # 构建生产版本
-```
-
 ### 前后端联调
 
 ```bash
@@ -74,10 +64,10 @@ npm run build             # 构建生产版本
 cd backend && python -m src --web
 
 # 终端 2: 启动前端开发服务器
-cd frontend && npm run dev
+cd frontend_chat && pnpm dev
 ```
 
-访问 http://localhost:3000 (开发) 或 http://localhost:8000 (生产构建)
+访问 http://localhost:8000 (生产构建) 或 http://localhost:3000 (前端开发)
 
 ## API 接口
 
@@ -95,6 +85,7 @@ cd frontend && npm run dev
 |--------|----------|------|
 | `content` | string | 文本内容块 |
 | `tool_call` | JSON | 工具调用信息 |
+| `tool_result` | JSON | 工具执行结果 |
 | `done` | 空 | 流结束信号 |
 | `error` | JSON | 错误信息 |
 
@@ -104,11 +95,9 @@ cd frontend && npm run dev
 |------|----------|
 | 后端框架 | FastAPI 0.109+ |
 | ASGI 服务器 | Uvicorn |
-| 前端框架 | Vue 3 + TypeScript |
-| 构建工具 | Vite 5.x |
-| 状态管理 | Pinia |
-| HTTP 客户端 | Axios |
-| 样式框架 | TailwindCSS |
+| 依赖注入 | injector |
+| 数据库 | SQLite |
+| LLM 提供商 | OpenAI / Qwen (通义千问) |
 
 ## 编码规范
 
@@ -117,15 +106,9 @@ cd frontend && npm run dev
 - **Python 版本**：3.9 及以上
 - **类型提示**：必须使用类型注解
 - **代码风格**：PEP 8 风格指南，双引号字符串
-- **函数长度**：建议控制在 50 行以内
+- **格式化**：Black (line-length: 100)
+- **导入排序**：isort (profile: black)
 - **文档字符串**：Google 风格
-
-### TypeScript 规范
-
-- **Vue 3**：使用 Composition API + `<script setup>`
-- **类型安全**：严格模式启用
-- **组件命名**：PascalCase (如 `ChatWindow.vue`)
-- **导入排序**：Vue API → 第三方 → 本地导入
 
 ### Dialog 组件规范
 
@@ -184,26 +167,26 @@ Dialog/Modal 弹窗组件统一使用以下样式规范：
 - **取消/次要按钮**：透明背景 + 边框
 - **删除/危险按钮**：红色背景 + 白色文字
 
-#### 5. 组件文件
-- `ConfirmDialog.vue` - 确认对话框
-- `RenameDialog.vue` - 重命名对话框
-
-### 模块导出规范
-
-后端模块的公共接口应在 `src/*/__init__.py` 中导出。
-
 ## 配置文件
 
-所有配置通过 `config.yaml` 管理，前端无配置界面：
+所有配置通过 `config.yaml` 管理：
 
 ```yaml
+llm:
+  provider: qwen  # 可选: openai, qwen
+
 openai:
-  api_base: "https://api.openai.com/v1"
+  api_url: "https://api.openai.com/v1"
   api_key: "your-api-key"
   model: "gpt-3.5-turbo"
 
+qwen:
+  api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: "your-api-key"
+  model: "qwen3-14b"
+  enable_thinking: false
+
 tools:
-  enabled: true
   allowed_tools:
     - bash
     - calculator
@@ -226,16 +209,19 @@ server:
 
 在 `src/api/` 目录添加新路由文件，并在 `__main__.py` 中注册。
 
-### 前端组件开发
+### 添加新业务模块
 
-- 通用组件放在 `src/components/`
-- 业务组件放在 `src/views/` (如需)
-- 组合式函数放在 `src/composables/`
-- 状态管理在 `src/stores/`
+项目采用 **DAO → Service → API** 三层架构，使用 **依赖注入** 管理服务生命周期。详见 `backend/CLAUDE.md`。
 
 ## 注意事项
 
-1. **配置管理**：所有配置通过 `config.yaml`，前端不维护配置状态
-2. **代码复用**：尽量复用 v2 的核心逻辑，减少重复代码
-3. **SSE 流式**：使用 `EventSource` API 处理流式响应
-4. **跨域配置**：开发环境 Vite 代理，生产环境 CORS 中间件
+1. **配置管理**：所有配置通过 `config.yaml`
+2. **SSE 流式**：使用 `EventSource` API 处理流式响应
+3. **跨域配置**：开发环境 Vite 代理，生产环境 CORS 中间件
+
+## 变更记录 (Changelog)
+
+| 时间戳 | 操作 | 说明 |
+|--------|------|------|
+| 2026-02-03 11:32:16 | 初始化 | 首次生成 AI 上下文文档 |
+| 2026-02-17 22:00:00 | 更新 | 更新为 WIMI CHAT 项目文档 |

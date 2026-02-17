@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -26,16 +27,27 @@ def run_cli():
     cli_main()
 
 
-def run_web():
-    """运行 Web 模式。"""
+def run_web(env: str = "dev"):
+    """运行 Web 模式。
+
+    Args:
+        env: 环境名称 (dev, prod, local)
+    """
     import uvicorn
     from fastapi import FastAPI
     from fastapi.staticfiles import StaticFiles
     from src.api import chat_router, health_router, test_router, tools_router
     from src.api.conversations import router as conversations_router
+    from src.config import get_current_env, load_config
     from src.utils.logging_web import setup_logging
     from src.web.cors import setup_cors
     from src.web.logging_middleware import RequestLoggingMiddleware
+
+    # 加载配置（传递环境参数）
+    effective_env = env if env else get_current_env()
+    app_config = load_config(env=effective_env)
+
+    print(f"Loading config for environment: {effective_env}")
 
     # 初始化日志系统
     logger = setup_logging(
@@ -65,10 +77,14 @@ def run_web():
     app.include_router(conversations_router)
 
     # 静态文件服务（前端构建产物）
-    static_dir = PROJECT_ROOT / "backend" / "static"
+    # 支持两种路径：本地开发 (backend/static) 和 Docker 部署 (/app/static)
+    static_dir = os.environ.get('STATIC_DIR', PROJECT_ROOT / "backend" / "static")
+    if isinstance(static_dir, str):
+        static_dir = Path(static_dir)
     if static_dir.exists():
-        # 挂载到 /static 路径
-        app.mount("/static", StaticFiles(directory=str(static_dir)))
+        # 挂载到根路径，直接映射 assets
+        app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+        app.mount("/favicon.ico", StaticFiles(directory=str(static_dir)), name="favicon")
 
         # 根路径返回 index.html
         @app.get("/")
@@ -79,20 +95,13 @@ def run_web():
                 return FileResponse(str(index_path))
             return {"status": "ok", "message": "LLM CLI V3 API", "docs": "/docs"}
 
-    # 获取端口配置
-    config_file = PROJECT_ROOT / "config.yaml"
-    port = 8000
-    host = "0.0.0.0"
-
-    if config_file.exists():
-        try:
-            import yaml
-            with open(config_file, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-                port = config.get('server', {}).get('port', 8000)
-                host = config.get('server', {}).get('host', '0.0.0.0')
-        except Exception:
-            pass
+    # 获取端口配置（从已加载的配置中获取，或使用默认值）
+    if app_config.server:
+        port = app_config.server.port
+        host = app_config.server.host
+    else:
+        port = 8000
+        host = "0.0.0.0"
 
     print(f"Starting LLM CLI V3 Web Server...")
     print(f"http://{host}:{port}")
@@ -123,6 +132,12 @@ def main():
         action="store_true",
         help="以 Web 模式运行（等价于 --mode web）"
     )
+    parser.add_argument(
+        "--env",
+        choices=["dev", "prod", "local"],
+        default=None,
+        help="运行环境: dev, prod, local (默认: dev 或 APP_ENV 环境变量)"
+    )
 
     args = parser.parse_args()
 
@@ -144,7 +159,7 @@ def main():
     if mode == "cli":
         run_cli()
     else:
-        run_web()
+        run_web(env=args.env)
 
 
 if __name__ == "__main__":

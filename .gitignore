@@ -48,11 +48,10 @@ build/
 .DS_Store
 Thumbs.db
 
-# Config (contains API keys)
-config.yaml
-*.local.yaml
 
 # Logs
 *.log
 /logs/
 /.zcf/
+static/
+.spec-workflow/
