@@ -1,11 +1,12 @@
 """JavaScript 脚本包装工具"""
 
 import json
+from typing import Optional
 
 from src.config.loader import load_config
 
 
-def wrap_javascript_code(code: str, params: dict, user_info: dict = None, inherit_from: str = None) -> str:
+def wrap_javascript_code(code: str, params: dict, user_info: dict = None, inherit_from: Optional[str] = None) -> str:
     """将工具代码包装为可执行的 JavaScript 脚本。
 
     Args:
