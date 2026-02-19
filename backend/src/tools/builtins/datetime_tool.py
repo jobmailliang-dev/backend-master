@@ -34,7 +34,7 @@ class DateTimeTool(BaseTool):
             "required": [],
         }
 
-    def execute(self, **kwargs) -> Dict[str, Any]:
+    def invoke(self, **kwargs) -> Dict[str, Any]:
         """执行工具，获取当前日期时间。"""
         timezone_str = kwargs.get('timezone')
 

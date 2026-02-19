@@ -71,7 +71,7 @@ Important:
             "required": ["skill_name"],
         }
 
-    def execute(self, **kwargs) -> Dict[str, Any]:
+    def invoke(self, **kwargs) -> Dict[str, Any]:
         """执行技能工具。"""
         skill_name = kwargs.get('skill_name') if kwargs else None
         args = kwargs.get('args', {})

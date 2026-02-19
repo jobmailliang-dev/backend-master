@@ -7,7 +7,7 @@ import asyncio
 import json as pyjson
 from typing import Any, Dict, List
 
-import quickjs
+import quickjs  # pyright: ignore[reportImplicitRelativeImport]
 
 from src.tools.base import BaseTool
 from src.tools.quickjs.func_console import apply as apply_console
@@ -24,7 +24,6 @@ class QuickJSTool(BaseTool):
             description="Execute JavaScript code and return the result",
         )
         self._context: quickjs.Context | None = None
-        self._console_output: List[str] = []
 
     def _get_context(self) -> quickjs.Context:
         """获取或创建 JS 上下文。"""
@@ -35,7 +34,7 @@ class QuickJSTool(BaseTool):
     def _register_console_functions(self) -> None:
         """注册 console 和工具调用函数。"""
         ctx = self._get_context()
-        apply_console(ctx, self._console_output, tool_name=self.name)
+        apply_console(ctx)
         apply_call_tool(ctx)
 
     def _get_js_type(self, value: Any) -> str:
@@ -87,11 +86,6 @@ class QuickJSTool(BaseTool):
                     "type": "string",
                     "description": "JavaScript code to execute (e.g., '1 + 2', 'Math.sqrt(16)')",
                 },
-                "show_console": {
-                    "type": "boolean",
-                    "description": "Whether to include console.log/warn/error output in response (default: false)",
-                    "default": True,
-                },
             },
             "required": ["code"],
         }
@@ -108,16 +102,20 @@ class QuickJSTool(BaseTool):
             return f'(function(){{\n{code}\n}})()'
         return code
 
-    def execute(self, **kwargs) -> Dict[str, Any]:
+    def invoke(self, **kwargs) -> Dict[str, Any]:
         """执行 JavaScript 代码。"""
         code = kwargs.get('code')
-        show_console = kwargs.get('show_console', False)
+        tool_name = kwargs.get('tool_name', self.name)
+
+        print(f"tool_name: {tool_name}")
 
         if not code:
             raise ValueError("JavaScript code is required")
 
         # 清空之前的 console 输出并重新注册函数（引用新列表）
-        self._console_output = []
+        # 将 tool_name 存储到 context globals 中，避免线程安全问题
+        ctx = self._get_context()
+        ctx.set("_tool_name", tool_name)
         self._register_console_functions()
 
         # 包装代码以支持 return 语句
@@ -156,10 +154,6 @@ class QuickJSTool(BaseTool):
                 "result_type": result_type,
             }
 
-            # 只有 show_console 为 True 时才添加 console 输出
-            if show_console and self._console_output:
-                response["console"] = self._console_output
-
             return response
 
         except quickjs.JSException as e:
@@ -176,7 +170,7 @@ class QuickJSTool(BaseTool):
         子类可以重写此方法以支持真正的异步执行。
 
         Args:
-            **kwargs: 工具参数，支持 code 和 show_console
+            **kwargs: 工具参数，支持 code 和 name
 
         Returns:
             包含 code, result, result_type 的字典

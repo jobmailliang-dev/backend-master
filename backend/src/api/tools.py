@@ -203,7 +203,7 @@ async def _execute_tool_stream(id: int, params: dict, user_info: dict = None) ->
 
         try:
             # 使用异步方法执行工具
-            result = await registry.aexecute("quickjs", code=script)
+            result = await registry.aexecute("quickjs", code=script, tool_name=tool_data.name)
 
             # 解析结果
             try:

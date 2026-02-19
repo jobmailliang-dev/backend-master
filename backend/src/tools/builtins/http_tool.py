@@ -72,7 +72,7 @@ class HttpTool(BaseTool):
             "required": ["method", "url"],
         }
 
-    def execute(self, **kwargs) -> Dict[str, Any]:
+    def invoke(self, **kwargs) -> Dict[str, Any]:
         """发送 HTTP 请求。"""
         method = kwargs.get("method", "GET").upper()
         url = kwargs.get("url", "")

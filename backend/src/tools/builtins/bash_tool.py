@@ -59,7 +59,7 @@ class BashTool(BaseTool):
                 # 最后使用 ignore 策略
                 return data.decode("utf-8", errors="ignore")
 
-    def execute(self, **kwargs) -> Dict[str, Any]:
+    def invoke(self, **kwargs) -> Dict[str, Any]:
         """执行 bash 命令。"""
         command = kwargs.get('command', '')
         timeout = kwargs.get('timeout', 60)

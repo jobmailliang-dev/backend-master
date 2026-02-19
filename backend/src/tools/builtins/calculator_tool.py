@@ -87,7 +87,7 @@ class CalculatorTool(BaseTool):
         else:
             raise ValueError(f"Expression type {type(node).__name__} is not allowed")
 
-    def execute(self, **kwargs) -> Dict[str, Any]:
+    def invoke(self, **kwargs) -> Dict[str, Any]:
         """执行计算。"""
         expression = kwargs.get('expression')
 

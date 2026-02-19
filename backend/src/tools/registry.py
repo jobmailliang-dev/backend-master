@@ -78,7 +78,7 @@ class ToolRegistry:
             if not isinstance(kwargs, dict):
                 raise ValueError(f"Arguments must be dict, got {type(kwargs)}")
 
-            result = tool.execute(**kwargs)
+            result = tool.invoke(**kwargs)
             return json.dumps(result, ensure_ascii=False, indent=2)
         except Exception as e:
             raise ValueError(f"Tool execution failed: {str(e)}")

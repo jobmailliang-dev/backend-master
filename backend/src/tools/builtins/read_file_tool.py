@@ -46,7 +46,7 @@ class ReadFileTool(BaseTool):
             "required": ["file_path"],
         }
 
-    def execute(self, **kwargs) -> Dict[str, Any]:
+    def invoke(self, **kwargs) -> Dict[str, Any]:
         """执行工具，读取文件。"""
         file_path = kwargs.get('file_path')
 

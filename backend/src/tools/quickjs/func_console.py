@@ -9,27 +9,27 @@ import time
 from src.utils.stream_writer_util import send_queue, task_context
 
 
-def apply(ctx, console_output_ref, tool_name: str = "quickjs"):
+def apply(ctx, tool_name: str = None):
     """应用控制台函数注册到 QuickJS 上下文。
 
     Args:
         ctx: QuickJS 上下文
         console_output_ref: 控制台输出列表的引用
-        tool_name: 工具名称（用于日志推送）
+        tool_name: 工具名称（用于日志推送），如果为 None 则从 ctx.globals 获取
     """
+    # 从 context 中获取 tool_name，避免线程安全问题
+    if tool_name is None:
+        try:
+            tool_name = ctx.get("_tool_name")
+            if tool_name is None:
+                tool_name = "quickjs"
+        except Exception:
+            tool_name = "quickjs"
     def _send_console_log(level: str, *args):
         """发送控制台日志到流和本地列表。"""
         # 转换参数为字符串
         output = " ".join(_js_value_to_string(arg) for arg in args)
         timestamp = time.time()
-
-        # 添加到本地列表（保持原有行为）
-        if level == "error":
-            console_output_ref.append(f"[ERROR] {output}")
-        elif level == "warn":
-            console_output_ref.append(f"[WARN] {output}")
-        else:
-            console_output_ref.append(output)
 
         # 通过 stream_writer 推送到前端（SSE）
         try:

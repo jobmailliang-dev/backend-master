@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from src.tools.base import BaseTool
 from src.modules.tools.models import Tool
-from src.tools.registry import get_registry
+from src.tools.quickjs.quickjs_tool import QuickJSTool
 from src.utils.script_wrapper import wrap_javascript_code
 
 
@@ -52,7 +52,7 @@ class DynamicTool(BaseTool):
 
         return result
 
-    def execute(self, **kwargs: Any) -> Dict[str, Any]:
+    def invoke(self, **kwargs: Any) -> Dict[str, Any]:
         """执行工具。
 
         使用 wrap_javascript_code 包装代码，然后调用 quickjs 工具执行。
@@ -70,12 +70,12 @@ class DynamicTool(BaseTool):
             inherit_from=self._tool.inherit_from
         )
 
-        # 调用 quickjs 工具执行
-        registry = get_registry()
-        result = registry.execute("quickjs", code=script)
+        # 创建新的 QuickJSTool 实例，避免线程安全问题
+        tool = QuickJSTool()
+        result = tool.invoke(code=script, tool_name=self._tool.name)
 
         # 直接返回结果
-        return {"result": result}
+        return result["result"]
 
     async def ainvoke(self, **kwargs: Any) -> Dict[str, Any]:
         """异步执行工具。
@@ -93,9 +93,9 @@ class DynamicTool(BaseTool):
             inherit_from=self._tool.inherit_from
         )
 
-        # 调用 quickjs 工具执行（异步）
-        registry = get_registry()
-        result = await registry.aexecute("quickjs", code=script)
+        # 创建新的 QuickJSTool 实例，避免线程安全问题
+        tool = QuickJSTool()
+        result = await tool.ainvoke(code=script, tool_name=self._tool.name)
 
         # 直接返回结果
-        return {"result": result}
+        return result["result"]

@@ -44,7 +44,7 @@ class BaseTool(ABC):
         pass
 
     @abstractmethod
-    def execute(self, **kwargs: Any) -> Dict[str, Any]:
+    def invoke(self, **kwargs: Any) -> Dict[str, Any]:
         """执行工具逻辑。
 
         Args:
@@ -75,7 +75,7 @@ class BaseTool(ABC):
         """
         # 默认实现：在线程池中执行同步的 execute 方法
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, lambda: self.execute(**kwargs))
+        return await loop.run_in_executor(None, lambda: self.invoke(**kwargs))
 
     def get_schema(self) -> Dict[str, Any]:
         """获取完整的工具 schema。"""
