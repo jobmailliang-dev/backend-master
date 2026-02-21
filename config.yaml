@@ -36,6 +36,7 @@ tools:
     - skill
     - read_file
     - bash
+    - quickjs
   max_tool_calls: 100
   show_tool_calls: true
 

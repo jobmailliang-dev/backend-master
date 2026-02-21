@@ -10,7 +10,7 @@ from src.tools.builtins.skill_tool import SkillTool
 from src.tools.builtins.bash_tool import BashTool
 from src.tools.quickjs.quickjs_tool import QuickJSTool
 from src.tools.builtins.http_tool import HttpTool
-from src.tools.builtins.dynamic_tool import DynamicTool
+from src.tools.builtins.js_dynamic_tool import DynamicTool
 
 __all__ = [
     'DateTimeTool',

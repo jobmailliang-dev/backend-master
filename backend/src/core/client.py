@@ -11,6 +11,7 @@ from src.config.models import OpenAIConfig, QwenConfig, ToolsConfig
 from src.core.session import SessionManager
 from src.tools.registry import get_registry
 from src.utils.logging_web import get_request_logger
+from src.utils.tool_args_utils import fill_default_args
 
 _logger = get_request_logger("src.core.client")
 
@@ -120,6 +121,14 @@ class LLMClient:
 					for tool_call in tool_calls:
 						tool_name = tool_call['function']['name']
 						tool_args = json.loads(tool_call['function']['arguments'] or "{}")
+
+						# 获取工具 schema 并填充默认值
+						tool_schema = registry.get(tool_name).get_schema() if registry.get(tool_name) else None
+						if tool_schema:
+							tool_args = fill_default_args(
+								tool_schema.get("function", {}).get("parameters", {}),
+								tool_args
+							)
 
 						if self.show_tool_calls:
 							print_tool_call(iteration, tool_name, tool_args)

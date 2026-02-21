@@ -4,7 +4,7 @@
 """
 
 import json
-from typing import Any
+from typing import Any, Dict
 
 from src.tools.registry import get_registry
 
@@ -15,7 +15,7 @@ def apply(ctx):
     Args:
         ctx: QuickJS 上下文
     """
-    def _call_tool(tool_name: str, args_json: str) -> str:
+    def _call_tool(tool_name: str, args_json: str) -> Dict[str, Any]:
         """从 JavaScript 调用系统工具。
 
         Args:
@@ -35,36 +35,36 @@ def apply(ctx):
         if tool is None:
             available = registry.list_all()
             # 返回包含详细错误信息的 JSON
-            return json.dumps({
+            return {
                 "error": "ToolNotFound",
                 "tool": tool_name,
                 "message": f"Tool '{tool_name}' not found",
                 "available": available
-            }, ensure_ascii=False)
+            }
 
         # 解析 JSON 字符串
         try:
             args = json.loads(args_json) if args_json else {}
         except json.JSONDecodeError as e:
-            return json.dumps({
+            return {
                 "error": "InvalidArgs",
                 "tool": tool_name,
                 "message": f"Invalid JSON arguments: {str(e)}"
-            }, ensure_ascii=False)
+            }
 
         # 执行工具
         try:
-            result = registry.execute(tool_name, **args)
+            result = tool.invoke(**args)
             return result
         except Exception as e:
-            return json.dumps({
+            return {
                 "error": "ToolError",
                 "tool": tool_name,
                 "message": str(e)
-            }, ensure_ascii=False)
+            }
 
-    # 注册原始函数
-    ctx.add_callable("_callTool", _call_tool)
+    # 注册函数（用 lambda 包装，返回 JSON 字符串）
+    ctx.add_callable("_callTool", lambda name, args: json.dumps(_call_tool(name, args), ensure_ascii=False))
 
     # 定义 JS 辅助函数（自动 stringify 并 parse 结果）
     ctx.eval("""
@@ -73,19 +73,18 @@ def apply(ctx):
                 args = JSON.stringify(args);
             }
             var result = _callTool(name, args);
-            if (typeof result === 'string') {
+            // 尝试解析为 JSON
+            try {
                 var parsed = JSON.parse(result);
                 // 检查是否为错误响应
                 if (parsed && parsed.error) {
                     var msg = parsed.message || parsed.error;
-                    if (parsed.available) {
-                        msg += ' [Available: ' + parsed.available.join(', ') + ']';
-                    }
                     throw new Error(msg);
                 }
                 return parsed;
+            } catch (e) {
+                // 解析失败，返回原始字符串
+                return result;
             }
-            // 非字符串结果直接返回
-            return result;
         }
     """)

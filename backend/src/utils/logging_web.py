@@ -201,6 +201,8 @@ def setup_logging(
 def get_request_logger(name: str = "src") -> logging.Logger:
     """获取用于记录请求日志的日志器。
 
+    如果日志系统未初始化，则自动初始化（仅控制台输出）。
+
     Args:
         name: 日志器名称
 

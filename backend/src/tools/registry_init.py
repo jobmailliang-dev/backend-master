@@ -12,7 +12,11 @@ from src.tools.builtins import (
     BashTool,
     QuickJSTool,
     HttpTool,
+    DynamicTool
 )
+from src.utils.logger import get_logger
+
+logger = get_logger("src.tools.registry_init")
 
 
 def _register_builtins() -> None:
@@ -41,22 +45,20 @@ def _register_dynamic_tools() -> None:
         if not active_tools:
             return
 
-        # 导入 DynamicTool
-        from src.tools.builtins.dynamic_tool import DynamicTool
 
         # 逐个注册动态工具
         for tool in active_tools:
             dynamic_tool = DynamicTool(tool)
             try:
                 register_tool(dynamic_tool)
-                print(f"[INFO] Registered dynamic tool: {tool.name}")
+                logger.info(f"[INFO] Registered dynamic tool: {tool.name}")
             except ValueError as e:
                 # 工具已存在则跳过（可能内置工具已注册）
-                print(f"[WARN] Skip dynamic tool '{tool.name}': {e}")
+                logger.warning(f"[WARN] Skip dynamic tool '{tool.name}': {e}")
 
     except Exception as e:
         # 数据库未初始化或连接失败，静默跳过
-        print(f"[WARN] Failed to register dynamic tools: {e}")
+        logger.warning(f"[WARN] Failed to register dynamic tools: {e}")
 
 
 # 模块导入时自动注册

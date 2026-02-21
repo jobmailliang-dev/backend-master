@@ -69,11 +69,9 @@ class DynamicTool(BaseTool):
             kwargs,
             inherit_from=self._tool.inherit_from
         )
-
         # 创建新的 QuickJSTool 实例，避免线程安全问题
         tool = QuickJSTool()
         result = tool.invoke(code=script, tool_name=self._tool.name)
-
         # 直接返回结果
         return result["result"]
 

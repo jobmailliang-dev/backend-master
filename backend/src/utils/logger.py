@@ -10,7 +10,10 @@ from typing import Optional
 class Logger:
     """简单日志封装。"""
 
+    # 颜色定义
     _GRAY = "\033[90m" if sys.stdout.isatty() else ""
+    _ORANGE = "\033[33m" if sys.stdout.isatty() else ""
+    _RED = "\033[31m" if sys.stdout.isatty() else ""
     _RESET = "\033[0m" if sys.stdout.isatty() else ""
 
     def __init__(self, name: str = "cli"):
@@ -23,22 +26,22 @@ class Logger:
         self._quiet = quiet
 
     def info(self, message: str) -> None:
-        """输出信息日志。"""
+        """输出信息日志（灰色）。"""
         if not self._quiet:
-            print(f"{self._GRAY}[INFO]{self._RESET} {message}")
+            print(f"{self._GRAY}[INFO]{self._RESET} {self._GRAY}{message}{self._RESET}")
 
     def error(self, message: str) -> None:
-        """输出错误日志。"""
-        print(f"{self._GRAY}[ERROR]{self._RESET} {message}")
+        """输出错误日志（红色）。"""
+        print(f"{self._RED}[ERROR]{self._RESET} {self._RED}{message}{self._RESET}")
 
     def debug(self, message: str) -> None:
-        """输出调试日志。"""
+        """输出调试日志（灰色）。"""
         if not self._quiet:
-            print(f"{self._GRAY}[DEBUG]{self._RESET} {message}")
+            print(f"{self._GRAY}[DEBUG]{self._RESET} {self._GRAY}{message}{self._RESET}")
 
     def warning(self, message: str) -> None:
-        """输出警告日志。"""
-        print(f"{self._GRAY}[WARNING]{self._RESET} {message}")
+        """输出警告日志（橙色）。"""
+        print(f"{self._ORANGE}[WARNING]{self._RESET} {self._ORANGE}{message}{self._RESET}")
 
 
 # 全局日志器

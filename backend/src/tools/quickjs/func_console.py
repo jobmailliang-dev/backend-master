@@ -93,7 +93,8 @@ def _js_value_to_string(value):
             json_str = value.json
             if callable(json_str):
                 json_str = json_str()
-            return json.dumps(json_str, ensure_ascii=False)
+            # 格式化为 JSON 字符串
+            return json.dumps(json.loads(json_str), ensure_ascii=False, indent=2)
         except Exception:
             return f"[Object: {value}]"
     else:
