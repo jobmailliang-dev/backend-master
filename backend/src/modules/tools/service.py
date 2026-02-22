@@ -11,6 +11,9 @@ from .models import Tool, ToolParameter
 from .dao import ToolDao
 from .dtos import ToolDto, ToolInheritableDto
 from src.modules.base import IService, ValidException
+from src.utils.logger import get_logger
+
+logger = get_logger("src.modules.tools.service")
 
 
 class IToolService(IService[ToolDto]):
@@ -240,6 +243,35 @@ class ToolService(IToolService):
 
         self._dao.delete(tool_id)
         return True
+
+    def reload_tool(self, tool_id: int, flush: bool = False) -> None:
+        """重新加载工具到注册表
+
+        Args:
+            tool_id: 工具 ID
+            flush: 是否重新加载工具，默认为 False
+                   - False: 只移除工具
+                   - True: 移除工具后再重新注册
+        """
+        from src.tools.registry import remove_tool, register_tool
+        from src.tools.builtins import DynamicTool
+
+        # 获取工具信息
+        tool = self._dao.get_by_id(tool_id)
+        if not tool:
+            return
+
+        # 移除工具
+        remove_tool(tool.name)
+
+        # flush=True 时重新注册
+        if flush and tool.is_active:
+            dynamic_tool = DynamicTool(tool)
+            try:
+                register_tool(dynamic_tool)
+            except ValueError as e:
+                # 工具已存在（可能是内置工具）则跳过
+                logger.warning(f"[WARN] Skip reload tool '{tool.name}': {e}")
 
 
 __all__ = ["IToolService", "ToolService", "ToolDto", "ToolInheritableDto"]

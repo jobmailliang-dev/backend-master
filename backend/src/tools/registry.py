@@ -57,6 +57,20 @@ class ToolRegistry:
         """
         return list(self._tools.keys())
 
+    def remove(self, name: str) -> bool:
+        """从注册表中移除工具。
+
+        Args:
+            name: 工具名称
+
+        Returns:
+            是否成功移除（工具不存在返回 False）
+        """
+        if name in self._tools:
+            del self._tools[name]
+            return True
+        return False
+
     def execute(self, name: str, **kwargs: Any) -> str:
         """执行工具。
 
@@ -151,3 +165,15 @@ def get_registry() -> ToolRegistry:
 def register_tool(tool: BaseTool) -> None:
     """向全局注册表注册工具。"""
     _registry.register(tool)
+
+
+def remove_tool(name: str) -> bool:
+    """从全局注册表移除工具。
+
+    Args:
+        name: 工具名称
+
+    Returns:
+        是否成功移除（工具不存在返回 False）
+    """
+    return _registry.remove(name)

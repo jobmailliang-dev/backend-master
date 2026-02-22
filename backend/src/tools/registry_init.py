@@ -18,16 +18,24 @@ from src.utils.logger import get_logger
 
 logger = get_logger("src.tools.registry_init")
 
+# 系统工具类列表（供自动注册和 API 校验使用）
+SYSTEM_TOOL_CLASSES = [
+    DateTimeTool,
+    CalculatorTool,
+    ReadFileTool,
+    SkillTool,
+    BashTool,
+    QuickJSTool,
+    HttpTool,
+]
+
+# 从系统工具类中提取名称集合（供 API 校验使用）
+SYSTEM_TOOL_NAMES = {cls().name for cls in SYSTEM_TOOL_CLASSES}
 
 def _register_builtins() -> None:
     """注册所有内置工具。"""
-    register_tool(DateTimeTool())
-    register_tool(CalculatorTool())
-    register_tool(ReadFileTool())
-    register_tool(SkillTool())
-    register_tool(BashTool())
-    register_tool(QuickJSTool())
-    register_tool(HttpTool())
+    for tool_cls in SYSTEM_TOOL_CLASSES:
+        register_tool(tool_cls())
 
 
 def _register_dynamic_tools() -> None:

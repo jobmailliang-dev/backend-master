@@ -15,6 +15,7 @@ from src.modules.tools.dtos import ToolDto
 from src.utils.logging_web import get_request_logger
 from src.utils.script_wrapper import wrap_javascript_code
 from src.utils.stream_writer_util import create_queue_task, send_queue
+from src.tools.registry_init import SYSTEM_TOOL_NAMES
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
@@ -26,6 +27,19 @@ _logger = get_request_logger("src.api.tools")
 
 # 获取 ToolService 实例
 _tool_service: ToolService = _injector.get(ToolService)
+
+
+def _check_tool_name(name: str) -> None:
+    """校验工具名称是否为系统内置工具。
+
+    Args:
+        name: 工具名称
+
+    Raises:
+        ValidException: 如果是系统内置工具
+    """
+    if name.lower() in SYSTEM_TOOL_NAMES:
+        raise ValidException(f"工具名 '{name}' 是系统内置工具，无法创建/修改")
 
 
 @router.get("")
@@ -48,7 +62,17 @@ async def get_tools(id: int = Query(default=None, description="Tool ID (optional
 @router.post("")
 async def create_tool(request: dict):
     """创建工具"""
+    # 校验工具名称是否为系统内置工具
+    tool_name = request.get("name", "")
+    if tool_name:
+        _check_tool_name(tool_name)
+
     data = _tool_service.create_one(request)
+
+    # 重新加载工具到注册表
+    if data:
+        _tool_service.reload_tool(data.id, flush=True)
+
     _logger.info(f"[tool_create] id={data.id if data else None}")
     return ApiResponse.ok(data)
 
@@ -57,7 +81,17 @@ async def create_tool(request: dict):
 @router.put("")
 async def update_tool(id: int = Query(..., description="Tool ID"), request: dict = None):
     """更新工具"""
+    # 校验工具名称是否为系统内置工具
+    tool_name = request.get("name", "") if request else ""
+    if tool_name:
+        _check_tool_name(tool_name)
+
     data = _tool_service.update(id, request or {})
+
+    # 重新加载工具到注册表
+    if data:
+        _tool_service.reload_tool(id, flush=True)
+
     _logger.info(f"[tool_update] id={id}")
     return ApiResponse.ok(data)
 
@@ -66,7 +100,15 @@ async def update_tool(id: int = Query(..., description="Tool ID"), request: dict
 @router.delete("")
 async def delete_tool(id: int = Query(..., description="Tool ID")):
     """删除工具"""
+    # 先获取工具信息用于从注册表移除
+    tool_data = _tool_service.get_one(id)
+
     success = _tool_service.delete_by_id(id)
+
+    # 从注册表移除工具
+    if success and tool_data:
+        _tool_service.reload_tool(id, flush=False)
+
     return ApiResponse.ok(success)
 
 
@@ -101,6 +143,10 @@ async def toggle_tool_active(
     """切换工具启用状态"""
     is_active = request.get("is_active", True) if request else True
     data = _tool_service.toggle_active(id, is_active)
+
+    # 重新加载工具到注册表
+    _tool_service.reload_tool(id, flush=True)
+
     return ApiResponse.ok(data)
 
 
