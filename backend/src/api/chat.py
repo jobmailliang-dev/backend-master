@@ -32,8 +32,7 @@ def get_client() -> LLMClient:
             openai_config=config.openai,
             tools_config=config.tools,
             llm_provider=config.llm_provider,
-            qwen_config=config.qwen,
-            cli_config=config.cli,
+            qwen_config=config.qwen
         )
     return _client
 
@@ -83,7 +82,7 @@ async def _run_chat_stream(message: str, conversation_id: Optional[str] = None) 
                 print(f"保存用户消息失败: {e}")
 
         # 调用 chat，响应会通过内部的 print_message 函数发送（流式输出）
-        full_response = client.chat(message) or ""
+        full_response = await client.chat(message) or ""
 
     except Exception as e:
         send_queue({"message": str(e)}, EVENT_ERROR)
