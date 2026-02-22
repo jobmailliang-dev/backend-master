@@ -214,6 +214,7 @@ def _parse_cli_config(raw: dict) -> CLIConfig:
         ai_prefix=raw.get('ai_prefix', 'AI'),
         exit_command=raw.get('exit_command', 'exit'),
         show_system=raw.get('show_system', False),
+        quiet=raw.get('quiet', False),
     )
 
 

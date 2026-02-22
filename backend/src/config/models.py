@@ -49,6 +49,7 @@ class CLIConfig:
     ai_prefix: str = "AI"
     exit_command: str = "exit"
     show_system: bool = False
+    quiet: bool = False
 
 
 @dataclass

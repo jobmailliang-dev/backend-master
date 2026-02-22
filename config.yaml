@@ -43,10 +43,11 @@ tools:
 # CLI Settings
 cli:
   title: LLM CLI V4 - Chat with AI
-  user_prefix: "You"
+  user_prefix: "user"
   ai_prefix: "AI"
   exit_command: "exit"
   show_system: false
+  quiet: true
 
 # Database Configuration
 database:

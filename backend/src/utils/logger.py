@@ -49,8 +49,15 @@ _global_logger: Optional[Logger] = None
 
 
 def get_logger(name: str = "cli") -> Logger:
-    """获取全局日志器。"""
-    global _global_logger
-    if _global_logger is None:
-        _global_logger = Logger(name)
-    return _global_logger
+  global _global_logger
+  if _global_logger is None:
+      _global_logger = Logger(name)
+      # 自动从配置中读取 quiet 设置
+      try:
+          from src.config.loader import load_config
+          config = load_config()
+          if config.cli and config.cli.quiet:
+              _global_logger.set_quiet(True)
+      except Exception:
+          pass
+  return _global_logger
