@@ -26,7 +26,6 @@ class CLIInterface:
             qwen_config=config.qwen,
         )
         self.user_prefix = config.cli.user_prefix
-        self.ai_prefix = config.cli.ai_prefix
         self.title = config.cli.title
         self.exit_command = config.cli.exit_command
 
@@ -46,7 +45,6 @@ class CLIInterface:
                     continue
 
                 response = self.client.chat(user_input)
-                print_message(f"{self.ai_prefix}: {response}")
                 print()
 
             except KeyboardInterrupt:
@@ -59,7 +57,6 @@ class CLIInterface:
     def print_welcome(self) -> None:
         """打印欢迎信息。"""
         print_welcome(self.title, self.exit_command)
-        print("提示：Ctrl+Enter 换行，Enter 发送，Ctrl+C 退出")
 
 
 def create_cli(config: AppConfig) -> CLIInterface:

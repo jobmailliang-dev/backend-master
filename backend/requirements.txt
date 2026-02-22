@@ -12,6 +12,9 @@ pytz>=2023.3
 # CLI 输入
 prompt_toolkit>=3.0.0
 
+# CLI 美化
+rich>=13.0.0
+
 # QuickJS
 quickjs>=1.19.4
 
