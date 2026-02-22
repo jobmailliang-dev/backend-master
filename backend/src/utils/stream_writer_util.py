@@ -30,12 +30,17 @@ def send_queue(msg: Any, event: str) -> None:
     """向流写入事件数据。
 
     Args:
-        msg: 要发送的消息数据（会被 JSON 序列化）
+        msg: 要发送的消息数据
         event: 事件名称，如 "content", "done", "error" 等
     """
     context = task_context.get()
     if context and context.get("stream_writer") is not None:
-        context["stream_writer"].write(f"event: {event}\ndata: {json.dumps(msg)}\n\n")
+        # 字符串直接发送，否则 JSON 序列化（ensure_ascii=False 保留中文）
+        if isinstance(msg, str):
+            data = msg
+        else:
+            data = json.dumps(msg, ensure_ascii=False)
+        context["stream_writer"].write(f"event: {event}\ndata: {data}\n\n")
 
 
 def create_queue_task(

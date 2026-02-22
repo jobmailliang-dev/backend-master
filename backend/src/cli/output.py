@@ -3,7 +3,7 @@
 处理输出格式和美化。
 """
 
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Union
 
 from src.utils.stream_writer_util import send_queue
 
@@ -16,6 +16,30 @@ EVENT_TOOL_RESULT = "tool_result"
 EVENT_TOOL_ERROR = "tool_error"
 EVENT_DONE = "done"
 EVENT_ERROR = "error"
+
+
+def _to_str(value: Any) -> str:
+    """确保值被转换为字符串。
+
+    处理 bytes、str 等不同类型，避免 JSON 序列化问题和
+    bytes 对象显示为 b'...' 格式的问题。
+
+    Args:
+        value: 任意值
+
+    Returns:
+        字符串形式
+    """
+    if isinstance(value, bytes):
+        # 尝试解码 bytes 为字符串
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return value.decode("utf-8", errors="replace")
+    elif value is None:
+        return ""
+    else:
+        return str(value)
 
 
 def print_welcome(title: str = "LLM CLI - Chat with AI", exit_cmd: str = "exit") -> None:

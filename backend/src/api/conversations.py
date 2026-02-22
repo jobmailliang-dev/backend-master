@@ -2,11 +2,25 @@
 
 from typing import Optional
 from fastapi import APIRouter, Query
+from pydantic import BaseModel
 from src.api.models import ApiResponse
 from src.modules import ConversationService, MessageService, get_injector
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 _injector = get_injector()
+
+
+class CreateConversationRequest(BaseModel):
+    """创建对话请求体"""
+    title: str = "新对话"
+
+
+class UpdateConversationRequest(BaseModel):
+    """更新对话请求体"""
+    id: str
+    title: Optional[str] = None
+    preview: Optional[str] = None
+    messageCount: Optional[int] = None
 
 
 def get_conversation_service() -> ConversationService:
@@ -27,39 +41,49 @@ async def get_conversations():
 
 
 @router.post("")
-async def create_conversation(title: str = Query(default="新对话")):
+async def create_conversation(request: CreateConversationRequest = None):
     """创建新对话"""
     service = get_conversation_service()
+    title = request.title if request and request.title else "新对话"
     conv = service.create_title(title)
     return ApiResponse.ok(conv)
 
 
 @router.delete("")
-async def delete_conversation(id: str = Query(..., description="对话ID")):
+async def delete_conversation(request: dict = None):
     """删除对话"""
+    # 支持请求体或 Query 参数
+    conversation_id = None
+    if request and "id" in request:
+        conversation_id = request.get("id")
+
+    if not conversation_id:
+        return ApiResponse.fail("缺少 id 参数")
+
     service = get_conversation_service()
-    success = service.delete_by_str_id(id)
+    success = service.delete_by_str_id(conversation_id)
     return ApiResponse.ok({"success": success})
 
 
 @router.patch("")
-async def update_conversation(
-    id: str = Query(..., description="对话ID"),
-    title: Optional[str] = Query(default=None, description="新标题"),
-    preview: Optional[str] = Query(default=None, description="新预览")
-):
+async def update_conversation(request: UpdateConversationRequest = None):
     """更新对话"""
+    if not request or not request.id:
+        return ApiResponse.fail("缺少 id 参数")
+
     service = get_conversation_service()
     data = {}
-    if title is not None:
-        data["title"] = title
-    if preview is not None:
-        data["preview"] = preview
+    if request.title is not None:
+        data["title"] = request.title
+    if request.preview is not None:
+        data["preview"] = request.preview
+    if request.messageCount is not None:
+        data["messageCount"] = request.messageCount
 
     if not data:
         return ApiResponse.fail("没有需要更新的字段")
 
-    conv = service.update_by_id(id, data)
+    conv = service.update_by_id(request.id, data)
     if not conv:
         return ApiResponse.fail("对话不存在")
 
