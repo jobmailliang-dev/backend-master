@@ -86,3 +86,9 @@ class SessionManager:
     def get_history_count(self) -> int:
         """获取对话历史数量（不含系统消息）。"""
         return len([m for m in self.messages if m.role in ('user', 'assistant')])
+
+    def get_system_message(self) -> str:
+        """获取系统消息内容。"""
+        if self.messages and self.messages[0].role == "system":
+            return self.messages[0].content
+        return ""

@@ -7,10 +7,11 @@ import json
 from typing import Any, Dict, List, Optional, Union
 
 from src.adapters.base import LLMAdapter, LLMResponse
-from src.config.models import OpenAIConfig, QwenConfig, ToolsConfig
+from src.config.models import CLIConfig, OpenAIConfig, QwenConfig, ToolsConfig
 from src.core.session import SessionManager
 from src.tools.registry import get_registry
 from src.utils.logging_web import get_request_logger
+from src.utils.logger import get_logger
 from src.utils.tool_args_utils import fill_default_args
 
 _logger = get_request_logger("src.core.client")

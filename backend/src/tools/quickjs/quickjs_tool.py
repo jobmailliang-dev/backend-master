@@ -106,9 +106,6 @@ class QuickJSTool(BaseTool):
         """执行 JavaScript 代码。"""
         code = kwargs.get('code')
         tool_name = kwargs.get('tool_name', self.name)
-
-        print(f"tool_name: {tool_name}")
-
         if not code:
             raise ValueError("JavaScript code is required")
 

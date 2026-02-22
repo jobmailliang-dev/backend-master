@@ -33,6 +33,7 @@ def get_client() -> LLMClient:
             tools_config=config.tools,
             llm_provider=config.llm_provider,
             qwen_config=config.qwen,
+            cli_config=config.cli,
         )
     return _client
 
