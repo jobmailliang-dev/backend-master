@@ -42,9 +42,8 @@ tools:
 
 # CLI Settings
 cli:
-  title: LLM CLI V4 - Chat with AI
-  user_prefix: "user"
-  ai_prefix: "AI"
+  title: WIMI LLM CLI V4 - Chat with AI
+  user_prefix: "user ➜ "
   exit_command: "exit"
   show_system: false
   quiet: true
