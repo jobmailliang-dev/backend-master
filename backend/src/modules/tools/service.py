@@ -75,6 +75,10 @@ class ToolService(IToolService):
 
         tool.is_active = is_active
         self._dao.update(tool)
+
+        # 重新加载工具到注册表
+        self.reload_tool(tool_id, flush=True)
+
         return  self.convert_dto(tool)
 
     def import_tools(self, tools_data: List[dict]) -> List[ToolDto]:
@@ -181,6 +185,10 @@ class ToolService(IToolService):
 
         tool_id = self._dao.create(tool)
         tool.id = tool_id
+
+        # 重新加载工具到注册表
+        self.reload_tool(tool_id, flush=True)
+
         return self.convert_dto(tool)
 
     def update(self, tool_id: int, data: dict) -> Optional[Tool]:
@@ -223,6 +231,10 @@ class ToolService(IToolService):
             tool.code = data["code"]
 
         self._dao.update(tool)
+
+        # 重新加载工具到注册表
+        self.reload_tool(tool_id, flush=True)
+
         return tool
 
     def delete_by_id(self, tool_id: int) -> bool:
@@ -242,6 +254,10 @@ class ToolService(IToolService):
             raise ValidException("Tool not found", "id")
 
         self._dao.delete(tool_id)
+
+        # 从注册表移除工具
+        self.reload_tool(tool_id, flush=False)
+
         return True
 
     def reload_tool(self, tool_id: int, flush: bool = False) -> None:

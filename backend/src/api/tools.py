@@ -68,11 +68,6 @@ async def create_tool(request: dict):
         _check_tool_name(tool_name)
 
     data = _tool_service.create_one(request)
-
-    # 重新加载工具到注册表
-    if data:
-        _tool_service.reload_tool(data.id, flush=True)
-
     _logger.info(f"[tool_create] id={data.id if data else None}")
     return ApiResponse.ok(data)
 
@@ -87,11 +82,6 @@ async def update_tool(id: int = Query(..., description="Tool ID"), request: dict
         _check_tool_name(tool_name)
 
     data = _tool_service.update(id, request or {})
-
-    # 重新加载工具到注册表
-    if data:
-        _tool_service.reload_tool(id, flush=True)
-
     _logger.info(f"[tool_update] id={id}")
     return ApiResponse.ok(data)
 
@@ -100,15 +90,7 @@ async def update_tool(id: int = Query(..., description="Tool ID"), request: dict
 @router.delete("")
 async def delete_tool(id: int = Query(..., description="Tool ID")):
     """删除工具"""
-    # 先获取工具信息用于从注册表移除
-    tool_data = _tool_service.get_one(id)
-
     success = _tool_service.delete_by_id(id)
-
-    # 从注册表移除工具
-    if success and tool_data:
-        _tool_service.reload_tool(id, flush=False)
-
     return ApiResponse.ok(success)
 
 
@@ -143,10 +125,6 @@ async def toggle_tool_active(
     """切换工具启用状态"""
     is_active = request.get("is_active", True) if request else True
     data = _tool_service.toggle_active(id, is_active)
-
-    # 重新加载工具到注册表
-    _tool_service.reload_tool(id, flush=True)
-
     return ApiResponse.ok(data)
 
 
