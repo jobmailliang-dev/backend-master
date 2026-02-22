@@ -52,16 +52,19 @@ var result = [];
 for (var i = 0; i < group_list.length; i++) {
     // 浅拷贝原始工位组对象，避免直接修改原数据
     var group = { ...group_list[i] };
-    
+
+
     // 3. 获取该组下的工位列表
-    var workstationsResult = callTool("查询工位组工位列表", { 
-        group_id: group.id,
-        size: -1 
-    });
+    var workstationsResult = callTool("查询工位组工位列表", {
+        data: {
+            group_id: group.id
+        }
+    } );
+    
 
     // 4. 动态增加“工位数量”字段
     // 假设 workstationsResult 返回的是对象 { list: [], length: 0 }
-    group.workstation_count = workstationsResult.length || 0;
+    group.workstation_count = workstationsResult.list.length || 0;
 
     // 5. 将增强后的对象推入结果数组
     result.push(group);
