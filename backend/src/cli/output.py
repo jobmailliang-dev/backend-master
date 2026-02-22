@@ -3,10 +3,14 @@
 处理输出格式和美化。
 """
 
+import sys
 from typing import Any, Callable, Dict
 
 from src.utils.stream_writer_util import send_queue
 
+# 终端颜色代码
+_GRAY = "\033[90m" if sys.stdout.isatty() else ""
+_RESET = "\033[0m" if sys.stdout.isatty() else ""
 
 # 事件类型常量
 EVENT_THINKING = "thinking"
@@ -48,29 +52,29 @@ def print_error(message: str) -> None:
 def print_tool_error(message: str) -> None:
     """打印工具错误信息。"""
     send_queue({"message": message}, EVENT_TOOL_ERROR)
-    from src.tools.registry import get_registry
-    get_registry().print_tool_error(message)
+    print(f"{_GRAY}[Tool Error] {_RESET}"
+          f"{_GRAY}{message}{_RESET}\n")
 
 
 def print_tool_call(iteration: int, name: str, args: Dict[str, Any]) -> None:
     """打印工具调用信息。"""
     send_queue({"iteration": iteration, "name": name, "args": args}, EVENT_TOOL_CALL)
-    from src.tools.registry import get_registry
-    get_registry().print_tool_call(iteration, name, args)
+    args_str = str(args)
+    max_len = 1000
+    if len(args_str) > max_len:
+        args_str = args_str[:max_len] + "..."
+
+    print(f"\n{_GRAY}[Tool Call #{iteration}] {_RESET}"
+          f"{_GRAY}{name} {_RESET}with args: {_GRAY}{args_str}{_RESET}")
 
 
 def print_tool_result(name: str, result: str) -> None:
     """打印工具执行结果。"""
     send_queue({"name": name, "result": result}, EVENT_TOOL_RESULT)
-    from src.tools.registry import get_registry
-    get_registry().print_tool_result(name, result)
+    result_str = str(result)
+    max_len = 500
+    if len(result_str) > max_len:
+        result_str = result_str[:max_len] + "..."
 
-
-# 兼容旧代码：保留函数签名但不生效
-def set_event_callback(callback: Callable[[str, Any], None]) -> None:
-    """已废弃，保留兼容。"""
-    pass
-
-
-event_callback: Callable[[str, Any], None] = None
-
+    print(f"{_GRAY}[Tool Result] {_RESET}"
+          f"{_GRAY}{name}: {result_str}{_RESET}\n")

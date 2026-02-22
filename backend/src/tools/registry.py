@@ -5,7 +5,6 @@
 
 import asyncio
 import json
-import sys
 from typing import Any, Dict, List, Optional
 
 from src.tools.base import BaseTool
@@ -16,10 +15,6 @@ class ToolRegistry:
 
     提供工具的注册、查找和执行功能。
     """
-
-    # 终端颜色代码
-    _GRAY = "\033[90m" if sys.stdout.isatty() else ""
-    _RESET = "\033[0m" if sys.stdout.isatty() else ""
 
     def __init__(self):
         """初始化工具注册表。"""
@@ -127,30 +122,6 @@ class ToolRegistry:
     def get_all_schemas(self) -> List[Dict[str, Any]]:
         """获取所有工具的 schema。"""
         return [tool.get_schema() for tool in self._tools.values()]
-
-    def print_tool_call(self, iteration: int, name: str, args: Dict[str, Any]) -> None:
-        """打印工具调用信息。"""
-        args_str = str(args)
-        max_len = 1000
-        if len(args_str) > max_len:
-            args_str = args_str[:max_len] + "..."
-
-        print(f"\n{self._GRAY}[Tool Call #{iteration}] {self._RESET}"
-              f"{self._GRAY}{name} {self._RESET}with args: {self._GRAY}{args_str}{self._RESET}")
-
-    def print_tool_result(self, name: str, result: str, max_len: int = 500) -> None:
-        """打印工具执行结果。"""
-        result_str = str(result)
-        if len(result_str) > max_len:
-            result_str = result_str[:max_len] + "..."
-
-        print(f"{self._GRAY}[Tool Result] {self._RESET}"
-              f"{self._GRAY}{name}: {result_str}{self._RESET}\n")
-
-    def print_tool_error(self, error_msg: str) -> None:
-        """打印工具错误信息。"""
-        print(f"{self._GRAY}[Tool Error] {self._RESET}"
-              f"{self._GRAY}{error_msg}{self._RESET}\n")
 
 
 # 全局注册表实例
