@@ -76,3 +76,4 @@ build/
 htmlcov/
 .tox/
 pyproject.toml
+.zcf/
