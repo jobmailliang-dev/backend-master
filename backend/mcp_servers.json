@@ -1,5 +1,18 @@
 {
   "mcpServers": {
+    "my_sqlite_db": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "mcp-alchemy==2025.8.15.91819",
+        "--refresh-package",
+        "mcp-alchemy",
+        "mcp-alchemy"
+      ],
+      "env": {
+        "DB_URL": "sqlite:///D:/work/python_demo_test/llm-cli-demo-v4/backend-master/backend/data/app.db"
+      }
+    },
     "fetch": {
       "command": "uvx",
       "args": ["mcp-server-fetch"]
