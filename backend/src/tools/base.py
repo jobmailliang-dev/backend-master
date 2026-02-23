@@ -5,13 +5,14 @@
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class BaseTool(ABC):
     """工具抽象基类。
 
-    所有工具必须继承此类并实现 get_parameters 和 execute 方法。
+    所有工具必须继承此类并实现 get_parameters 和 invoke 方法。
     """
 
     def __init__(self, name: str, description: str):
@@ -61,7 +62,7 @@ class BaseTool(ABC):
     async def ainvoke(self, **kwargs: Any) -> Dict[str, Any]:
         """异步执行工具逻辑。
 
-        默认实现调用同步的 execute 方法。
+        默认实现调用同步的 invoke 方法。
         子类可以重写此方法以支持真正的异步执行。
 
         Args:
@@ -73,7 +74,7 @@ class BaseTool(ABC):
         Raises:
             ValueError: 参数无效或执行失败
         """
-        # 默认实现：在线程池中执行同步的 execute 方法
+        # 默认实现：在线程池中执行同步的 invoke 方法
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: self.invoke(**kwargs))
 
@@ -90,3 +91,120 @@ class BaseTool(ABC):
 
     def __repr__(self) -> str:
         return f"BaseTool(name={self.name})"
+
+
+# MCP 兼容性支持 - 枚举类
+class ToolStatus(Enum):
+    """工具执行状态枚举。"""
+    SUCCESS = "success"
+    ERROR = "error"
+    INVALID_PARAM = "invalid_param"
+
+
+class ErrorCode(Enum):
+    """错误码枚举。"""
+    MCP_EXECUTION_ERROR = "execution_error"
+    MCP_PARAM_ERROR = "param_error"
+    MCP_INVALID_PARAM = "invalid_param"
+    MCP_PARSE_ERROR = "parse_error"
+    MCP_NETWORK_ERROR = "network_error"
+    MCP_TIMEOUT = "timeout"
+
+
+class ToolParameter:
+    """工具参数定义。
+
+    用于 MCP 适配器的参数描述。
+    """
+
+    def __init__(
+        self,
+        name: str,
+        type: str = "any",
+        description: str = "",
+        required: bool = False,
+        default: Any = None,
+    ):
+        """初始化工具参数。
+
+        Args:
+            name: 参数名称
+            type: 参数类型
+            description: 参数描述
+            required: 是否必需
+            default: 默认值
+        """
+        self.name = name
+        self.type = type
+        self.description = description
+        self.required = required
+        self.default = default
+
+
+class Tool:
+    """工具基类（MCP 兼容）。
+
+    保留此基类以兼容 MCP 适配器的现有代码。
+    实际上应使用 BaseTool。
+    """
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        project_root: Optional[str] = None,
+        working_dir: Optional[str] = None,
+    ):
+        """初始化工具。
+
+        Args:
+            name: 工具名称
+            description: 工具描述
+            project_root: 项目根目录
+            working_dir: 工作目录
+        """
+        self._name = name
+        self._description = description
+        self.project_root = project_root
+        self.working_dir = working_dir
+        self._parameters: List[ToolParameter] = []
+
+    @property
+    def name(self) -> str:
+        """获取工具名称。"""
+        return self._name
+
+    @property
+    def description(self) -> str:
+        """获取工具描述。"""
+        return self._description
+
+    def get_parameters(self) -> List[ToolParameter]:
+        """获取参数列表。"""
+        return self._parameters
+
+    def add_parameter(self, param: ToolParameter) -> None:
+        """添加参数定义。"""
+        self._parameters.append(param)
+
+    def run(self, parameters: Dict[str, Any]) -> str:
+        """运行工具（同步）。
+
+        Args:
+            parameters: 参数字典
+
+        Returns:
+            执行结果（JSON 字符串）
+        """
+        raise NotImplementedError
+
+    async def run_async(self, parameters: Dict[str, Any]) -> str:
+        """运行工具（异步）。
+
+        Args:
+            parameters: 参数字典
+
+        Returns:
+            执行结果（JSON 字符串）
+        """
+        return self.run(parameters)
