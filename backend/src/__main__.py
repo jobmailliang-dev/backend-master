@@ -1,6 +1,7 @@
 """LLM CLI V3 - 应用入口。"""
 
 import argparse
+import asyncio
 import logging
 import os
 import sys

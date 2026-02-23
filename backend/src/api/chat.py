@@ -82,7 +82,7 @@ async def _run_chat_stream(message: str, conversation_id: Optional[str] = None) 
                 print(f"保存用户消息失败: {e}")
 
         # 调用 chat，响应会通过内部的 print_message 函数发送（流式输出）
-        full_response = await client.chat(message) or ""
+        full_response = await client.achat(message) or ""
 
     except Exception as e:
         send_queue({"message": str(e)}, EVENT_ERROR)

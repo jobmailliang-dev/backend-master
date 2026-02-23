@@ -3,6 +3,7 @@
 核心业务逻辑，处理与 LLM API 的交互。
 """
 
+import asyncio
 import json
 from typing import Any, Dict, List, Optional, Union
 
@@ -12,6 +13,7 @@ from src.core.session import SessionManager
 from src.tools.registry import get_registry
 from src.utils.logger import get_logger
 from src.utils.tool_args_utils import fill_default_args
+
 
 _logger = get_logger(__name__)
 
@@ -61,12 +63,19 @@ class LLMClient:
 		self.allowed_tools = set(tools_config.allowed_tools) if tools_config.allowed_tools else set()
 		self.show_tool_calls = tools_config.show_tool_calls
 
-	async def chat(self, user_message: str) -> str:
+	def chat(self, user_message: str) -> str:
 		"""发送消息并获取回复（始终使用工具调用）。"""
 		self.session.add_user(user_message)
-		return await self._chat_with_tools(user_message)
+		return self._chat_with_tools(user_message)
 
-	async def _chat_with_tools(self, user_message: str) -> str:
+	async def achat(self, user_message: str) -> str:
+		"""发送消息并获取回复（异步版本，始终使用工具调用）。"""
+		self.session.add_user(user_message)
+		loop = asyncio.get_running_loop()
+		return await loop.run_in_executor(None, lambda: self._chat_with_tools(user_message))
+
+
+	def _chat_with_tools(self, user_message: str) -> str:
 		"""带工具调用的对话。"""
 		from src.cli.output import print_thinking, print_message, print_tool_call, print_tool_result, print_tool_error,print_error
 		registry = get_registry()
@@ -134,7 +143,7 @@ class LLMClient:
 							print_tool_call(iteration, tool_name, tool_args)
 
 						try:
-							result = await registry.aexecute(tool_name, **tool_args)
+							result = registry.execute(tool_name, **tool_args)
 
 							# 处理技能工具
 							if tool_name == "skill":
