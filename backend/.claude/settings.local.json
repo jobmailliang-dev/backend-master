@@ -19,7 +19,8 @@
       "mcp__Playwright__browser_close",
       "Bash(py -m pip install:*)",
       "Bash(pip install:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(LOG_LEVEL=DEBUG python -c:*)"
     ]
   }
 }

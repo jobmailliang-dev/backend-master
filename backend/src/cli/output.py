@@ -252,9 +252,3 @@ def print_tool_error(message: str) -> None:
     """打印工具错误信息。"""
     send_queue({"message": message}, EVENT_TOOL_ERROR)
     get_printer().print_tool_error(message)
-
-
-# 兼容旧代码：保留函数签名但不生效
-def set_event_callback(callback: Callable[[str, Any], None]) -> None:
-    """已废弃，保留兼容。"""
-    pass

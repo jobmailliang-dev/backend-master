@@ -46,7 +46,6 @@ cli:
   user_prefix: "user ➜ "
   exit_command: "exit"
   show_system: false
-  quiet: true
 
 # Database Configuration
 database:

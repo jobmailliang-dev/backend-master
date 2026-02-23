@@ -3,6 +3,7 @@
 主命令行交互界面。
 """
 
+from multiprocessing import get_logger
 import sys
 from typing import Optional
 

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "WebFetch(domain:python-prompt-toolkit.readthedocs.io)"
+      "WebFetch(domain:python-prompt-toolkit.readthedocs.io)",
+      "Bash(git commit:*)"
     ]
   }
 }

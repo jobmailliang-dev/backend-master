@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-
+from src.utils.logger import setup_logging
 # 添加 src 目录到 Python 路径
 SRC_DIR = Path(__file__).parent
 PROJECT_ROOT = SRC_DIR.parent.parent
@@ -27,13 +27,6 @@ def setup_python_path():
     """设置 Python 路径。"""
     if str(PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(PROJECT_ROOT))
-
-
-def run_cli():
-    """运行 CLI 模式。"""
-    from src.cli.interface import run_cli as cli_main
-    cli_main()
-
 
 def run_web(env: str = "dev"):
     """运行 Web 模式。
@@ -116,6 +109,10 @@ def run_web(env: str = "dev"):
 
 def main():
     """主入口函数。"""
+    # 加载环境变量
+    _load_env_if_needed()
+    # 初始化日志系统
+    setup_logging()
 
     parser = argparse.ArgumentParser(
         description="LLM CLI V3 - 支持 CLI 和 Web 模式"
@@ -144,8 +141,7 @@ def main():
     )
 
     args = parser.parse_args()
-
-    from src.cli.interface import run_cli
+    
 
     # 确定运行模式
     if args.cli:
@@ -160,14 +156,12 @@ def main():
 
     # 运行对应模式
     if mode == "cli":
+        from src.tools import registry_init  # noqa: F401
+        from src.cli.interface import run_cli
         run_cli()
     else:
         run_web(env=args.env)
 
 
-if __name__ == "__main__":
-    from src.utils.logger import setup_logging
-    _load_env_if_needed()
-    # 初始化日志系统
-    setup_logging()
+if __name__ == "__main__": 
     main()

@@ -48,7 +48,6 @@ class CLIConfig:
     user_prefix: str = "You"
     exit_command: str = "exit"
     show_system: bool = False
-    quiet: bool = False
 
 
 @dataclass

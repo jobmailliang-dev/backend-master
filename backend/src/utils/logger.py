@@ -26,14 +26,18 @@ def setup_logging(
     log_path = Path(log_dir)
     log_path.mkdir(parents=True, exist_ok=True)
 
+    # 从环境变量获取日志级别，默认为 INFO
+    log_level_str = __import__('os').environ.get('LOG_LEVEL', 'INFO').upper()
+    log_level = getattr(logging, log_level_str, logging.INFO)
+
     # 配置日志格式
     formatter = logging.Formatter(
-        "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
 
     # 获取根日志器
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(log_level)
 
     # 清除现有处理器
     logger.handlers.clear()
@@ -59,8 +63,6 @@ def setup_logging(
     # 避免日志向上传播到根日志器产生重复输出
     logger.propagate = False
 
-    # 设置默认级别
-    logger.setLevel(logging.INFO)
 
 
 def get_logger(name: str) -> logging.Logger:
