@@ -4,7 +4,7 @@
 使用 IService[ToolDto] 接口约束数据类型。
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import json
 from injector import inject
 from .models import Tool, ToolParameter
@@ -12,6 +12,8 @@ from .dao import ToolDao
 from .dtos import ToolDto, ToolInheritableDto
 from src.modules.base import IService, ValidException
 from src.utils.logger import get_logger
+from src.tools.registry import get_registry
+from src.tools.base import BaseTool
 
 logger = get_logger(__name__)
 
@@ -113,16 +115,67 @@ class ToolService(IToolService):
         return [self.convert_dto(tool) for tool in self._dao.get_all()]
 
     def get_inheritable_tools(self) -> List[ToolInheritableDto]:
-        """获取可继承的工具列表"""
-        return [
-            ToolInheritableDto(
-                id=tool.id,
-                name=tool.name,
-                description=tool.description,
-                parameters=[p.to_dict() for p in tool.parameters]
+        """获取可继承的工具列表
+
+        从注册表中获取所有已注册的工具（包括内置工具和动态工具），
+        并转换为 ToolInheritableDto 格式。
+        """
+        registry = get_registry()
+        dto_list: List[ToolInheritableDto] = []
+
+        # 遍历注册表中的所有工具
+        for tool_name in registry.list_all():
+            tool = registry.get(tool_name)
+            if tool is None:
+                continue
+
+            # 构建参数列表
+            parameters = self._convert_parameters(tool.get_parameters())
+
+            dto_list.append(
+                ToolInheritableDto(
+                    name=tool.name,
+                    description=tool.description,
+                    parameters=parameters
+                )
             )
-            for tool in self._dao.get_active()
-        ]
+
+        return dto_list
+
+    def _convert_parameters(self, schema: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """将 JSON Schema 格式的参数转换为 DTO 格式
+
+        Args:
+            schema: JSON Schema 格式的参数定义
+
+        Returns:
+            DTO 格式的参数列表
+        """
+        parameters: List[Dict[str, Any]] = []
+
+        if not schema:
+            return parameters
+
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+
+        for name, prop in properties.items():
+            param: Dict[str, Any] = {
+                "name": name,
+                "description": prop.get("description", ""),
+                "type": prop.get("type", "any"),
+                "required": name in required
+            }
+
+            # 空值处理
+            if "default" in prop:
+                param["default"] = prop["default"]
+            if "enum" in prop:
+                param["enum"] = prop["enum"]
+
+            parameters.append(param)
+
+        return parameters
 
     def convert_dto(self, entity) -> ToolDto:
         """将实体转换为 DTO

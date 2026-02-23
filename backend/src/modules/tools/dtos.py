@@ -45,7 +45,6 @@ class ToolListDto(BaseModel):
 
 class ToolInheritableDto(BaseModel):
     """可继承工具数据传输对象（精简版）"""
-    id: int = Field(..., description="工具 ID")
     name: str = Field(..., description="工具名称")
     description: str = Field(..., description="工具描述")
     parameters: List[Any] = Field(default_factory=list, description="参数列表")

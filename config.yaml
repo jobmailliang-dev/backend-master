@@ -41,6 +41,10 @@ tools:
     - tavily-mcp_tavily-extract
     - context7_resolve-library-id
     - context7_query-docs
+    - my_sqlite_db_all_table_names
+    - my_sqlite_db_schema_definitions
+    - my_sqlite_db_execute_query
+    - my_sqlite_db_all_table_names 
   max_tool_calls: 100
   show_tool_calls: true
 
