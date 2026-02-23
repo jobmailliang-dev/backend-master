@@ -6,13 +6,21 @@ import os
 import sys
 from pathlib import Path
 
-# 禁用 Uvicorn 默认访问日志，保留自定义中间件的简洁输出
-uvicorn_access_logger = logging.getLogger("uvicorn.access")
-uvicorn_access_logger.setLevel(logging.WARNING)
-
 # 添加 src 目录到 Python 路径
 SRC_DIR = Path(__file__).parent
 PROJECT_ROOT = SRC_DIR.parent.parent
+
+
+def _load_env_if_needed() -> None:
+    """如果 .env 文件存在则加载。"""
+    try:
+        from src.config.dotenv_loader import load_dotenv
+        # 获取环境名称
+        env = os.environ.get('APP_ENV', 'dev')
+        load_dotenv(env=env, override=False)
+    except Exception:
+        # .env 加载失败不影响运行
+        pass
 
 
 def setup_python_path():
@@ -39,9 +47,10 @@ def run_web(env: str = "dev"):
     from src.api import chat_router, health_router, test_router, tools_router
     from src.api.conversations import router as conversations_router
     from src.config import get_current_env, load_config
-    from src.utils.logging_web import setup_logging
     from src.web.cors import setup_cors
     from src.web.logging_middleware import RequestLoggingMiddleware
+    from src.utils.logger import get_logger
+    logger = get_logger(__name__)
 
     # 加载配置（传递环境参数）
     effective_env = env if env else get_current_env()
@@ -49,18 +58,12 @@ def run_web(env: str = "dev"):
 
     print(f"Loading config for environment: {effective_env}")
 
-    # 初始化日志系统
-    logger = setup_logging(
-        log_level="INFO",
-        console_output=True,
-        file_output=True,
-        retention_days=30,
-    )
+    
 
     app = FastAPI(
-        title="LLM CLI V3",
+        title="WIMI LLM WEB V4",
         description="A web interface for LLM CLI with streaming support",
-        version="3.0.0",
+        version="4.0.0",
     )
 
     # 添加请求日志中间件（最后注册，确保最先执行）
@@ -113,6 +116,7 @@ def run_web(env: str = "dev"):
 
 def main():
     """主入口函数。"""
+
     parser = argparse.ArgumentParser(
         description="LLM CLI V3 - 支持 CLI 和 Web 模式"
     )
@@ -141,7 +145,6 @@ def main():
 
     args = parser.parse_args()
 
-    from src.tools import registry_init  # noqa: F401
     from src.cli.interface import run_cli
 
     # 确定运行模式
@@ -163,4 +166,8 @@ def main():
 
 
 if __name__ == "__main__":
+    from src.utils.logger import setup_logging
+    _load_env_if_needed()
+    # 初始化日志系统
+    setup_logging()
     main()

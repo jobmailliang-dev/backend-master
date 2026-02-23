@@ -1,13 +1,13 @@
 # LLM CLI v2 Configuration
 
 llm:
-  provider: openai
+  provider: ${LLM_PROVIDER::openai}
 
 # OpenAI API Configuration
 openai:
-  api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  api_key: "sk-dedab808e1a64810833d8e0a3d7b88c8"
-  model: "glm-4.7"
+  api_url: ${API_URL::https://dashscope.aliyuncs.com/compatible-mode/v1}
+  api_key: ${API_KEY::sk-dedab808e1a64810833d8e0a3d7b88c8}
+  model: ${API_MODEL::glm-4.7}
   max_tokens: 1000
   temperature: 0.7
   use_stream: true
@@ -18,9 +18,9 @@ qwen:
   # api_url: "http://192.168.20.220:11434/v1"
   # api_key: ""
   # model: "qwen3:8b"
-  api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  api_key: "sk-dedab808e1a64810833d8e0a3d7b88c8"
-  model: "qwen3-8b"
+  api_url: ${API_URL::https://dashscope.aliyuncs.com/compatible-mode/v1}
+  api_key: ${API_KEY::sk-dedab808e1a64810833d8e0a3d7b88c8}
+  model: ${API_MODEL::qwen3-8b}
   max_tokens: 1000
   temperature: 0.7
   use_stream: true

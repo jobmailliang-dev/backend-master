@@ -14,7 +14,7 @@ from pydantic import ValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-from src.utils.logging_web import API_LOGGER_NAME, get_request_logger
+from src.utils.logger import get_logger
 from src.modules.base import ApiException, ValidException
 
 
@@ -33,7 +33,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app: ASGIApp,
-        logger_name: str = API_LOGGER_NAME,
+        logger_name: str = "src.middleware",
     ) -> None:
         """初始化中间件。
 
@@ -42,7 +42,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             logger_name: 日志器名称
         """
         super().__init__(app)
-        self.logger = get_request_logger(logger_name)
+        self.logger = get_logger(logger_name)
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """处理请求并记录日志。

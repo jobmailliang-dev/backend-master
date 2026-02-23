@@ -13,7 +13,7 @@ from .dtos import ToolDto, ToolInheritableDto
 from src.modules.base import IService, ValidException
 from src.utils.logger import get_logger
 
-logger = get_logger("src.modules.tools.service")
+logger = get_logger(__name__)
 
 
 class IToolService(IService[ToolDto]):

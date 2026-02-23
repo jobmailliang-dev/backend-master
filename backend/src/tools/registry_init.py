@@ -17,7 +17,7 @@ from src.tools.builtins import (
 )
 from src.utils.logger import get_logger
 
-logger = get_logger("src.tools.registry_init")
+logger = get_logger(__name__)
 
 # 系统工具类列表（供自动注册和 API 校验使用）
 SYSTEM_TOOL_CLASSES = [
@@ -62,14 +62,14 @@ def _register_dynamic_tools() -> None:
             dynamic_tool = DynamicTool(tool)
             try:
                 register_tool(dynamic_tool)
-                logger.info(f"[INFO] Registered dynamic tool: {tool.name}")
+                logger.info(f"Registered dynamic tool: {tool.name}")
             except ValueError as e:
                 # 工具已存在则跳过（可能内置工具已注册）
-                logger.warning(f"[WARN] Skip dynamic tool '{tool.name}': {e}")
+                logger.warning(f"Skip dynamic tool '{tool.name}': {e}")
 
     except Exception as e:
         # 数据库未初始化或连接失败，静默跳过
-        logger.warning(f"[WARN] Failed to register dynamic tools: {e}")
+        logger.warning(f"Failed to register dynamic tools: {e}")
 
 
 def _register_mcp_tools() -> None:

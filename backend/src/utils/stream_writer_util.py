@@ -17,7 +17,7 @@ from typing import Any, Callable, Awaitable, TypeVar
 
 from src.utils.logger import get_logger
 
-logger = get_logger("stream_writer_util")
+logger = get_logger(__name__)
 
 # 泛型返回值类型
 R = TypeVar("R")

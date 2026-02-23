@@ -3,7 +3,7 @@
 提供日志、前端解析等通用功能。
 """
 
-from src.utils.logger import get_logger
+from src.utils.logger import get_logger, setup_logging
 from src.utils.frontmatter import parse_frontmatter
 from src.utils.stream_writer_util import (
     send_queue,
@@ -14,6 +14,7 @@ from src.utils.stream_writer_util import (
 
 __all__ = [
     'get_logger',
+    'setup_logging',
     'parse_frontmatter',
     'send_queue',
     'create_queue_task',

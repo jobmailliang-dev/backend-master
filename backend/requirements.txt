@@ -21,6 +21,9 @@ quickjs>=1.19.4
 # DI 框架
 injector>=0.24.0
 
+# 环境变量加载
+python-dotenv>=1.0.0
+
 # MCP 协议支持
 mcp>=1.0.0
 anyio>=3.0.0

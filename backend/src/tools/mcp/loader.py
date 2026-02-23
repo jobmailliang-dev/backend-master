@@ -122,7 +122,7 @@ def register_mcp_servers(tool_registry, project_root: str) -> tuple[list[MCPClie
             continue
 
         try:
-            logger.info(f"=========register_mcp_tools: {server_name}")
+            logger.info(f"begin register mcp: {server_name}")
             tools_meta = register_mcp_tools(tool_registry, client, namespace=server_name)
             registered_tools.extend(tools_meta)
         except Exception as exc:

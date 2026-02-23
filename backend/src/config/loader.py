@@ -4,11 +4,13 @@
 """
 
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
 
+from src.config.dotenv_loader import expand_env_in_dict
 from src.config.models import (
     AppConfig,
     OpenAIConfig,
@@ -142,8 +144,14 @@ def load_config(config_path: Optional[str] = None, env: Optional[str] = None) ->
     if env is None:
         env = get_current_env()
 
+    # 加载 .env 文件到 os.environ
+    _load_dotenv_for_config(env=env)
+
     # 加载配置文件并合并
     raw_config = _load_and_merge_configs(config_path, env)
+
+    # 替换配置中的环境变量占位符
+    raw_config = expand_env_in_dict(raw_config)
 
     # 解析 LLM provider 配置
 
@@ -225,6 +233,16 @@ def _parse_server_config(raw: dict) -> Optional[ServerConfig]:
         host=raw.get('host', '0.0.0.0'),
         port=raw.get('port', 8000),
     )
+
+
+def _load_dotenv_for_config(env: Optional[str] = None) -> None:
+    """为配置加载环境变量。
+
+    Args:
+        env: 环境名称，默认使用 get_current_env()
+    """
+    from src.config.dotenv_loader import load_dotenv
+    load_dotenv(env=env, override=False)
 
 
 def _parse_system_metadata(raw: dict) -> Optional[SystemMetadata]:

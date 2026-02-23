@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
+
+from src.config.dotenv_loader import expand_env_in_dict
 
 
 DEFAULT_CONFIG_FILES = (
@@ -20,7 +23,9 @@ def _load_from_env() -> dict[str, Any] | None:
     if not raw:
         return None
     try:
-        return json.loads(raw)
+        data = json.loads(raw)
+        # 替换环境变量
+        return expand_env_in_dict(data)
     except json.JSONDecodeError:
         return None
 
@@ -32,7 +37,9 @@ def _load_from_files(project_root: str) -> dict[str, Any] | None:
         if not path.exists():
             continue
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
+            # 替换环境变量
+            return expand_env_in_dict(data)
         except Exception:
             continue
     return None

@@ -12,7 +12,7 @@ from src.api.models import ApiResponse
 from src.modules import ToolService, get_injector
 from src.modules.base import ValidException, ApiException
 from src.modules.tools.dtos import ToolDto
-from src.utils.logging_web import get_request_logger
+from src.utils.logger import get_logger
 from src.utils.script_wrapper import wrap_javascript_code
 from src.utils.stream_writer_util import create_queue_task, send_queue
 from src.tools.registry_init import SYSTEM_TOOL_NAMES
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/tools", tags=["tools"])
 _injector = get_injector()
 
 # 获取日志器
-_logger = get_request_logger("src.api.tools")
+_logger = get_logger(__name__)
 
 # 获取 ToolService 实例
 _tool_service: ToolService = _injector.get(ToolService)

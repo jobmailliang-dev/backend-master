@@ -1,63 +1,79 @@
 """日志工具。
 
-提供简单的日志封装。
+提供简单的日志封装，基于标准 logging 模块。
 """
 
-import sys
+import logging
+from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
 from typing import Optional
 
 
-class Logger:
-    """简单日志封装。"""
+def setup_logging(
+    log_dir: Optional[str] = None,
+    retention_days: int = 30,
+) -> None:
+    """配置日志系统。
 
-    # 颜色定义
-    _GRAY = "\033[90m" if sys.stdout.isatty() else ""
-    _ORANGE = "\033[33m" if sys.stdout.isatty() else ""
-    _RED = "\033[31m" if sys.stdout.isatty() else ""
-    _RESET = "\033[0m" if sys.stdout.isatty() else ""
+    Args:
+        log_dir: 日志文件目录，默认使用项目 logs 目录
+        retention_days: 日志保留天数（默认 30 天）
+    """
+    if log_dir is None:
+        project_root = Path(__file__).parent.parent.parent
+        log_dir = project_root / "logs"
 
-    def __init__(self, name: str = "cli"):
-        """初始化日志器。"""
-        self.name = name
-        self._quiet = False
+    log_path = Path(log_dir)
+    log_path.mkdir(parents=True, exist_ok=True)
 
-    def set_quiet(self, quiet: bool) -> None:
-        """设置安静模式。"""
-        self._quiet = quiet
+    # 配置日志格式
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
+    )
 
-    def info(self, message: str) -> None:
-        """输出信息日志（灰色）。"""
-        if not self._quiet:
-            print(f"{self._GRAY}[INFO]{self._RESET} {self._GRAY}{message}{self._RESET}")
+    # 获取根日志器
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
 
-    def error(self, message: str) -> None:
-        """输出错误日志（红色）。"""
-        print(f"{self._RED}[ERROR]{self._RESET} {self._RED}{message}{self._RESET}")
+    # 清除现有处理器
+    logger.handlers.clear()
 
-    def debug(self, message: str) -> None:
-        """输出调试日志（灰色）。"""
-        if not self._quiet:
-            print(f"{self._GRAY}[DEBUG]{self._RESET} {self._GRAY}{message}{self._RESET}")
+    # 文件处理器（按时间轮转，每天零点切割）
+    log_file = log_path / "api.log"
+    file_handler = TimedRotatingFileHandler(
+        filename=str(log_file),
+        when="midnight",
+        interval=1,
+        backupCount=retention_days,
+        encoding="utf-8",
+        utc=True,  # 使用 UTC 时间，确保轮转时间一致
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-    def warning(self, message: str) -> None:
-        """输出警告日志（橙色）。"""
-        print(f"{self._ORANGE}[WARNING]{self._RESET} {self._ORANGE}{message}{self._RESET}")
+    # 控制台处理器（可选，便于调试）
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    # 避免日志向上传播到根日志器产生重复输出
+    logger.propagate = False
+
+    # 设置默认级别
+    logger.setLevel(logging.INFO)
 
 
-# 全局日志器
-_global_logger: Optional[Logger] = None
+def get_logger(name: str) -> logging.Logger:
+    """获取日志器实例。
+
+    Args:
+        name: 日志器名称，通常使用 __name__
+
+    Returns:
+        logging.Logger 实例
+    """
+    return logging.getLogger(name)
 
 
-def get_logger(name: str = "cli") -> Logger:
-  global _global_logger
-  if _global_logger is None:
-      _global_logger = Logger(name)
-      # 自动从配置中读取 quiet 设置
-      try:
-          from src.config.loader import load_config
-          config = load_config()
-          if config.cli and config.cli.quiet:
-              _global_logger.set_quiet(True)
-      except Exception:
-          pass
-  return _global_logger
+# 支持直接导入 TimedRotatingFileHandler（如需自定义配置）
+__all__ = ["get_logger", "setup_logging", "TimedRotatingFileHandler"]
