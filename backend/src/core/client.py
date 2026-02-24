@@ -5,16 +5,18 @@
 
 import asyncio
 import json
-from typing import Any, Dict, List, Optional, Union
+from contextvars import copy_context
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from src.adapters import get_adapter
 from src.adapters.base import LLMResponse
 from src.config.models import CLIConfig, LLMConfig, ToolsConfig
 from src.core.session import SessionManager
+from src.core.message_store import IMessageStore
 from src.tools.registry import get_registry
 from src.utils.logger import get_logger
 from src.utils.tool_args_utils import fill_default_args
-
+    
 
 _logger = get_logger(__name__)
 
@@ -26,7 +28,8 @@ class LLMClient:
 		self,
 		llm_config: LLMConfig,
 		tools_config: Optional[ToolsConfig] = None,
-		metadata: Dict[str, str] = None
+		metadata: Dict[str, str] = None,
+		message_store: Optional[IMessageStore] = None,
 	):
 		"""初始化客户端。
 
@@ -34,6 +37,7 @@ class LLMClient:
 			llm_config: 统一的 LLM 配置（必填）
 			tools_config: 工具配置
 			metadata: 元数据
+			message_store: 消息存储接口
 		"""
 		self.tools_config = tools_config
 		self.metadata = metadata or {}
@@ -45,7 +49,11 @@ class LLMClient:
 
 		# 初始化会话
 		system_message = getattr(self.config, 'system_message', 'You are a helpful assistant.')
-		self.session = SessionManager(system_message, self.metadata)
+		self.session = SessionManager(
+			system_message,
+			self.metadata,
+			message_store=message_store,
+		)
 
 		# 工具配置
 		self.allowed_tools = set(tools_config.allowed_tools) if tools_config.allowed_tools else set()
@@ -54,16 +62,24 @@ class LLMClient:
 	def chat(self, user_message: str) -> str:
 		"""发送消息并获取回复（始终使用工具调用）。"""
 		self.session.add_user(user_message)
-		return self._chat_with_tools(user_message)
+		return self._chat_with_tools()
 
 	async def achat(self, user_message: str) -> str:
-		"""发送消息并获取回复（异步版本，始终使用工具调用）。"""
+		"""发送消息并获取回复（异步版本，始终使用工具调用）。
+
+		使用 copy_context 确保 ContextVar 跨线程传递，
+		以便在线程池中执行的代码能访问到 task_context。
+		"""
 		self.session.add_user(user_message)
 		loop = asyncio.get_running_loop()
-		return await loop.run_in_executor(None, lambda: self._chat_with_tools(user_message))
+		# 复制当前上下文，确保 ContextVar（如 task_context）能跨线程传递
+		ctx = copy_context()
+		# 注意：run_in_executor(executor, func) - 第一个参数是 executor，不是 context
+		# 但 copy_context() 返回的 Context 对象可以直接用 ctx.run(func) 在新线程中运行
+		return await loop.run_in_executor(None, lambda: ctx.run(self._chat_with_tools))
 
 
-	def _chat_with_tools(self, user_message: str) -> str:
+	def _chat_with_tools(self) -> str:
 		"""带工具调用的对话。"""
 		from src.cli.output import print_thinking, print_message, print_tool_call, print_tool_result, print_tool_error,print_error
 		registry = get_registry()
@@ -99,8 +115,9 @@ class LLMClient:
 				# 处理工具调用响应
 				if tool_calls:
 					# 添加助手消息（带工具调用）
+					print(f"{self.adapter} thinking_content: {thinking_content} assistant_content: {assistant_content}  ")
 					self.session.add_assistant(
-						assistant_content,
+						thinking_content,
 						tool_calls=[
 							{
 								"id": tc['id'],

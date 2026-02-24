@@ -201,7 +201,7 @@ class MessageService(IMessageService):
         return self.create_message(conversation_id, role, content)
 
     def create_message(
-        self, conversation_id: str, role: str, content: str
+        self, conversation_id: str, role: str, content: str, tool_calls: list = None
     ) -> MessageDto:
         """创建消息并更新对话"""
         now = int(time.time() * 1000)
@@ -211,7 +211,8 @@ class MessageService(IMessageService):
             conversation_id=conversation_id,
             role=role,
             content=content,
-            timestamp=now
+            timestamp=now,
+            tool_calls=tool_calls or []
         )
         self._dao.create(message)
 
@@ -254,7 +255,8 @@ class MessageService(IMessageService):
             conversationId=data.get("conversationId", data.get("conversation_id", "")),
             role=data.get("role", "user"),
             content=data.get("content", ""),
-            timestamp=data.get("timestamp", 0)
+            timestamp=data.get("timestamp", 0),
+            tool_calls=data.get("tool_calls", [])
         )
 
 

@@ -1,7 +1,7 @@
 """对话和消息业务实体模块"""
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Any, List, Optional
 import sqlite3
 
 
@@ -47,6 +47,7 @@ class Message:
     role: str = "user"  # user | assistant
     content: str = ""
     timestamp: int = 0
+    tool_calls: List[Any] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -55,16 +56,25 @@ class Message:
             "conversationId": self.conversation_id,
             "role": self.role,
             "content": self.content,
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
+            "tool_calls": self.tool_calls
         }
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> "Message":
         """从数据库行创建实体"""
+        import json
+        tool_calls = []
+        if row["tool_calls"]:
+            try:
+                tool_calls = json.loads(row["tool_calls"])
+            except (json.JSONDecodeError, TypeError):
+                tool_calls = []
         return cls(
             id=row["id"],
             conversation_id=row["conversation_id"],
             role=row["role"],
             content=row["content"],
-            timestamp=row["timestamp"]
+            timestamp=row["timestamp"],
+            tool_calls=tool_calls
         )

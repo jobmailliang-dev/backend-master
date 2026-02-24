@@ -9,6 +9,7 @@ from .service import (
     MessageService
 )
 from .dtos import ConversationDto, MessageDto
+from .message_store import MessageStoreImpl
 
 __all__ = [
     "Conversation",
@@ -20,5 +21,6 @@ __all__ = [
     "IMessageService",
     "MessageService",
     "ConversationDto",
-    "MessageDto"
+    "MessageDto",
+    "MessageStoreImpl",
 ]

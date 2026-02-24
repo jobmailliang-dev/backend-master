@@ -12,10 +12,12 @@ from src.core.initializer import (
     PythonPathInitializer,
     get_app_config
 )
+from src.core.message_store import IMessageStore
 from .injector import injector
 
 __all__ = [
     'LLMClient',
+    'IMessageStore',
     'injector',
     'get_app_config',
     'ApplicationInitializer',

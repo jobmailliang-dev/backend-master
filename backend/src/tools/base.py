@@ -5,6 +5,7 @@
 
 import asyncio
 from abc import ABC, abstractmethod
+from contextvars import copy_context
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -74,9 +75,11 @@ class BaseTool(ABC):
         Raises:
             ValueError: 参数无效或执行失败
         """
-        # 默认实现：在线程池中执行同步的 invoke 方法
+        # 使用 copy_context 确保 ContextVar 跨线程传递
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, lambda: self.invoke(**kwargs))
+        ctx = copy_context()
+        # copy_context() 返回的 Context 对象用 ctx.run(func) 在新线程中运行
+        return await loop.run_in_executor(None, lambda: ctx.run(self.invoke, **kwargs))
 
     def get_schema(self) -> Dict[str, Any]:
         """获取完整的工具 schema。"""

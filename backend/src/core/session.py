@@ -5,8 +5,13 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from src.utils import get_logger
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import pytz
+
+from src.core.message_store import IMessageStore
+    
+_logger = get_logger(__name__)
 
 
 @dataclass
@@ -31,12 +36,26 @@ class Message:
 class SessionManager:
     """会话管理器。"""
 
-    def __init__(self, system_message: str, metadata: Dict[str, str] = None):
-        """初始化会话。"""
+    def __init__(
+        self,
+        system_message: str,
+        metadata: Dict[str, str] = None,
+        message_store: Optional[IMessageStore] = None,
+    ):
+        """初始化会话。
+
+        Args:
+            system_message: 系统消息
+            metadata: 元数据
+            message_store: 消息存储接口
+        """
         self.messages: List[Message] = []
         self._system_message = system_message
         self._metadata = metadata or {}
+        self._message_store = message_store
+        self.load_from_store()
         self._init_system_message()
+
 
     def _init_system_message(self) -> None:
         """初始化系统消息。"""
@@ -50,7 +69,6 @@ class SessionManager:
 
     def _format_metadata(self) -> str:
         """格式化元数据。"""
-        import re
         lines = []
         for key, value in self._metadata.items():
             # 替换 {time} 为当前时间
@@ -63,14 +81,17 @@ class SessionManager:
     def add_user(self, content: str) -> None:
         """添加用户消息。"""
         self.messages.append(Message(role="user", content=content))
+        self._save_to_store("user", content)
 
     def add_assistant(self, content: str, tool_calls: List[Dict[str, Any]] = None) -> None:
         """添加助手消息。"""
         self.messages.append(Message(role="assistant", content=content, tool_calls=tool_calls or []))
+        self._save_to_store("assistant", content, tool_calls=tool_calls)
 
     def add_tool_result(self, tool_call_id: str, name: str, content: str) -> None:
         """添加工具结果消息。"""
         self.messages.append(Message(role="tool", content=content, tool_call_id=tool_call_id))
+        self._save_to_store("tool", content, tool_call_id=tool_call_id)
 
     def get_messages(self) -> List[Dict[str, Any]]:
         """获取所有消息（API 格式）。"""
@@ -92,3 +113,35 @@ class SessionManager:
         if self.messages and self.messages[0].role == "system":
             return self.messages[0].content
         return ""
+
+    def _save_to_store(
+        self,
+        role: str,
+        content: str,
+        **kwargs: Any
+    ) -> None:
+        """保存消息到存储。"""
+        if self._message_store:
+            self._message_store.save_message(
+                role,
+                content,
+                **kwargs
+            )
+
+    def load_from_store(self) -> None:
+        """从存储加载历史消息（不含系统消息）。"""
+        if self._message_store:
+            history = self._message_store.load_messages()
+            _logger.info(f"load history count {len(history)}")
+            for msg in history:
+                role = msg.get("role")
+                content = msg.get("content", "")
+                tool_call_id = msg.get("tool_call_id")
+                tool_calls = msg.get("tool_calls")
+
+                if role == "user":
+                    self.messages.append(Message(role="user", content=content))
+                elif role == "assistant":
+                    self.messages.append(Message(role="assistant", content=content, tool_calls=tool_calls or []))
+                elif role == "tool":
+                    self.messages.append(Message(role="tool", content=content, tool_call_id=tool_call_id))

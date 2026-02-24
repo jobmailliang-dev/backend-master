@@ -1,20 +1,19 @@
 """聊天 API 路由。"""
 
-from typing import AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from src.core import get_app_config, LLMClient
+from src.core import get_app_config, LLMClient, IMessageStore
 from src.cli.output import EVENT_DONE, EVENT_ERROR
 from src.utils.stream_writer_util import create_queue_task, send_queue
 from src.modules import MessageService
+from src.modules.conversations import MessageStoreImpl
 from src.core import injector
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-# 全局客户端实例
-_client: Optional[LLMClient] = None
 _injector = injector
 
 
@@ -23,17 +22,19 @@ def get_message_service() -> MessageService:
     return _injector.get(MessageService)
 
 
-def get_client() -> LLMClient:
-    """获取或创建 LLM 客户端实例。"""
-    global _client
-    if _client is None:
-        config = get_app_config()
-        _client = LLMClient(
-            llm_config=config.llm,
-            tools_config=config.tools,
-            metadata=config.get_system_metadata_dict()
-        )
-    return _client
+def create_client(message_store: Optional[IMessageStore] = None) -> LLMClient:
+    """创建新的 LLM 客户端实例（每次请求创建新实例以保证线程安全）
+
+    Args:
+        message_store: 消息存储接口实现
+    """
+    config = get_app_config()
+    return LLMClient(
+        llm_config=config.llm,
+        tools_config=config.tools,
+        metadata=config.get_system_metadata_dict(),
+        message_store=message_store,
+    )
 
 
 class ChatRequest(BaseModel):
@@ -55,7 +56,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     try:
-        client = get_client()
+        client = create_client()
         response = client.chat(request.message)
         return ChatResponse(
             success=True,
@@ -70,36 +71,36 @@ async def _run_chat_stream(message: str, conversation_id: Optional[str] = None) 
     """运行 chat 并通过 send_queue 发送事件。"""
     full_response = ""
     try:
-        client = get_client()
-
-        # 如果有 conversation_id，先保存用户消息
+        # 创建消息存储实现（每次创建新实例）
+        message_store: Optional[IMessageStore] = None
         if conversation_id:
-            try:
-                msg_service = get_message_service()
-                msg_service.create_message(conversation_id, "user", message)
-            except Exception as e:
-                print(f"保存用户消息失败: {e}")
+            msg_service = get_message_service()
+            message_store = MessageStoreImpl(msg_service, conversation_id)
 
+        # 创建客户端，传入 message_store
+        client = create_client(message_store=message_store)
+
+        
         # 调用 chat，响应会通过内部的 print_message 函数发送（流式输出）
+        # 注意：消息保存由 SessionManager 自动处理
         full_response = await client.achat(message) or ""
 
     except Exception as e:
         send_queue({"message": str(e)}, EVENT_ERROR)
     finally:
-        # 流结束时保存助手消息
-        if conversation_id and full_response:
-            try:
-                msg_service = get_message_service()
-                msg_service.create_message(conversation_id, "assistant", full_response)
-            except Exception as e:
-                print(f"保存助手消息失败: {e}")
-
         send_queue("", EVENT_DONE)
 
 
 async def generate_sse_stream(message: str, conversation_id: Optional[str] = None) -> AsyncGenerator[str, None]:
-    """生成 SSE 流（实时推送）。"""
-    queue = create_queue_task(_run_chat_stream, message, conversation_id)
+    """生成 SSE 流（实时推送）。
+
+    Args:
+        message: 用户消息
+        conversation_id: 对话ID，会被放入 task_context 中供其他模块获取
+    """
+    # 将 conversation_id 放入上下文，供其他地方通过 task_context.get()["conversation_id"] 获取
+    context_data = {"conversation_id": conversation_id} if conversation_id else {}
+    queue = create_queue_task(_run_chat_stream, message, conversation_id, context_data=context_data)
     while True:
         chunk = await queue.get()
         if chunk is None:

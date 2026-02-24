@@ -13,7 +13,7 @@
 import asyncio
 import json
 from contextvars import ContextVar
-from typing import Any, Callable, Awaitable, TypeVar
+from typing import Any, Callable, Awaitable, TypeVar, Optional
 
 from src.utils.logger import get_logger
 
@@ -23,7 +23,8 @@ logger = get_logger(__name__)
 R = TypeVar("R")
 
 # 任务上下文，使用 ContextVar 跨协程传递
-task_context: ContextVar[dict[str, Any]] = ContextVar('task_context', default={})
+# 使用 default=dict 而非 default={}，避免可变默认对象导致的上下文污染
+task_context: ContextVar[dict[str, Any]] = ContextVar('task_context', default=dict)
 
 
 def send_queue(msg: Any, event: str) -> None:
@@ -33,19 +34,25 @@ def send_queue(msg: Any, event: str) -> None:
         msg: 要发送的消息数据
         event: 事件名称，如 "content", "done", "error" 等
     """
-    context = task_context.get()
-    if context and context.get("stream_writer") is not None:
+    try:
+        context = task_context.get()
+        logger.warning(f"context:::: {context}")
+        if not context:
+            return
+        writer = context.get("stream_writer")
+        if writer is None:
+            return
         # 字符串直接发送，否则 JSON 序列化（ensure_ascii=False 保留中文）
-        if isinstance(msg, str):
-            data = msg
-        else:
-            data = json.dumps(msg, ensure_ascii=False)
-        context["stream_writer"].write(f"event: {event}\ndata: {data}\n\n")
+        data = msg if isinstance(msg, str) else json.dumps(msg, ensure_ascii=False)
+        writer.write(f"event: {event}\ndata: {data}\n\n")
+    except Exception as e:
+        logger.warning(f"发送队列消息失败: {str(e)}")
 
 
 def create_queue_task(
     func: Callable[..., Awaitable[R]],
     *args,
+    context_data: Optional[dict[str, Any]] = None,
     **kwargs
 ) -> asyncio.Queue:
     """创建一个异步任务并返回队列。
@@ -56,6 +63,7 @@ def create_queue_task(
     Args:
         func: 异步函数
         *args: 传递给 func 的位置参数
+        context_data: 可选的额外上下文数据，会被合并到 task_context 中
         **kwargs: 传递给 func 的关键字参数
 
     Returns:
@@ -76,6 +84,10 @@ def create_queue_task(
                 if chunk is None:
                     break
                 yield chunk
+
+        # 使用 context_data 传递额外上下文
+        queue = create_queue_task(task_func, context_data={"conversation_id": "123"})
+        # 在任务中可以通过 task_context.get()["conversation_id"] 获取
         ```
     """
     queue = asyncio.Queue()
@@ -88,15 +100,24 @@ def create_queue_task(
     writer = MyStreamWriter(queue, loop)
 
     async def callback(stream_writer: MyStreamWriter) -> None:
-        """内部回调函数，执行异步任务并管理上下文。"""
+        """内部回调函数，执行异步任务并管理上下文。
+
+        使用显式 set/reset 确保每个任务有独立的上下文，避免上下文污染。
+        """
+        # 显式创建新上下文并设置，确保任务间隔离
+        context: dict[str, Any] = {}
+        token = task_context.set(context)
         try:
-            context = task_context.get()
             context["stream_writer"] = stream_writer
+            # 合并额外的上下文数据（如 conversation_id）
+            if context_data:
+                context.update(context_data)
             # 执行工具
             await func(*args, **kwargs)
         except Exception as e:
             logger.error(f"异步任务执行失败: {str(e)}")
         finally:
+            task_context.reset(token)
             stream_writer.close()  # 确保最后关闭流
 
     # 当前事件循环中启动协程

@@ -98,7 +98,8 @@ class MessageDao:
                 conversation_id TEXT NOT NULL,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
-                timestamp INTEGER NOT NULL
+                timestamp INTEGER NOT NULL,
+                tool_calls TEXT
             )
         """)
         self._conn.execute("""
@@ -108,16 +109,19 @@ class MessageDao:
 
     def create(self, message: Message) -> str:
         """创建消息"""
+        import json
         sql = """
-            INSERT INTO messages (id, conversation_id, role, content, timestamp)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO messages (id, conversation_id, role, content, timestamp, tool_calls)
+            VALUES (?, ?, ?, ?, ?, ?)
         """
+        tool_calls_json = json.dumps(message.tool_calls) if message.tool_calls else None
         self._conn.execute(sql, (
             message.id,
             message.conversation_id,
             message.role,
             message.content,
-            message.timestamp
+            message.timestamp,
+            tool_calls_json
         ))
         return message.id
 

@@ -38,6 +38,7 @@ class MessageDto(BaseModel):
     role: str = Field(..., description="角色（user/assistant）")
     content: str = Field(..., description="消息内容")
     timestamp: int = Field(..., description="时间戳")
+    tool_calls: list = Field(default_factory=list, description="工具调用列表")
 
     class Config:
         json_schema_extra = {
@@ -46,7 +47,8 @@ class MessageDto(BaseModel):
                 "conversationId": "conv_abc123",
                 "role": "user",
                 "content": "你好",
-                "timestamp": 1704067200000
+                "timestamp": 1704067200000,
+                "tool_calls": []
             }
         }
 
