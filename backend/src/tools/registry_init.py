@@ -48,14 +48,14 @@ def _register_builtins() -> None:
 def _register_dynamic_tools() -> None:
     """从数据库加载动态工具并注册到注册表。"""
     try:
-        from src.modules import get_injector, ToolDao
+        from src.core import injector
+        from src.modules import ToolDao
 
         # 获取 ToolDao 实例
-        injector = get_injector()
-        dao: ToolDao = injector.get(ToolDao)
+        tool_dao: ToolDao = injector.get(ToolDao)
 
         # 获取所有激活的工具
-        active_tools = dao.get_active()
+        active_tools = tool_dao.get_active()
 
         if not active_tools:
             return

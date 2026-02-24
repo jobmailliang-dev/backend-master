@@ -9,7 +9,8 @@ from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
 from src.api.models import ApiResponse
-from src.modules import ToolService, get_injector
+from src.modules import ToolService
+from src.core import injector
 from src.modules.base import ValidException, ApiException
 from src.modules.tools.dtos import ToolDto
 from src.utils.logger import get_logger
@@ -20,7 +21,7 @@ from src.tools.registry_init import SYSTEM_TOOL_NAMES
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
 # 获取 Injector 实例
-_injector = get_injector()
+_injector = injector
 
 # 获取日志器
 _logger = get_logger(__name__)

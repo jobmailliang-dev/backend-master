@@ -4,12 +4,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 
-from src.modules import TestService, Test, get_injector
+from src.modules import TestService, Test
+from src.core import injector
 
 router = APIRouter(prefix="/api/test", tags=["test"])
 
 # 获取 Injector 实例
-_injector = get_injector()
+_injector = injector
 
 
 @router.get("/health")

@@ -68,9 +68,14 @@ def create_cli(config: AppConfig) -> CLIInterface:
 def run_cli(config_path: Optional[str] = None) -> None:
     """运行 CLI 应用。"""
     from src.config.loader import load_config, ConfigurationError
+    from src.core import get_app_config
 
     try:
-        config = load_config(config_path)
+        # 如果传入了 config_path，则使用 load_config，否则使用全局配置
+        if config_path:
+            config = load_config(config_path)
+        else:
+            config = get_app_config()
         cli = create_cli(config)
         cli.run()
     except ConfigurationError as e:

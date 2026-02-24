@@ -1,4 +1,4 @@
-"""LLM CLI V3 - 应用入口。"""
+"""LLM CLI V4 - 应用入口。"""
 
 import argparse
 import asyncio
@@ -6,28 +6,11 @@ import logging
 import os
 import sys
 from pathlib import Path
-from src.utils.logger import setup_logging
+from src.core import ApplicationInitializer, get_app_config
+
 # 添加 src 目录到 Python 路径
 SRC_DIR = Path(__file__).parent
 PROJECT_ROOT = SRC_DIR.parent.parent
-
-
-def _load_env_if_needed() -> None:
-    """如果 .env 文件存在则加载。"""
-    try:
-        from src.config.dotenv_loader import load_dotenv
-        # 获取环境名称
-        env = os.environ.get('APP_ENV', 'dev')
-        load_dotenv(env=env, override=False)
-    except Exception:
-        # .env 加载失败不影响运行
-        pass
-
-
-def setup_python_path():
-    """设置 Python 路径。"""
-    if str(PROJECT_ROOT) not in sys.path:
-        sys.path.insert(0, str(PROJECT_ROOT))
 
 def run_web(env: str = "dev"):
     """运行 Web 模式。
@@ -40,19 +23,10 @@ def run_web(env: str = "dev"):
     from fastapi.staticfiles import StaticFiles
     from src.api import chat_router, health_router, test_router, tools_router
     from src.api.conversations import router as conversations_router
-    from src.config import get_current_env, load_config
     from src.web.cors import setup_cors
     from src.web.logging_middleware import RequestLoggingMiddleware
     from src.utils.logger import get_logger
     logger = get_logger(__name__)
-
-    # 加载配置（传递环境参数）
-    effective_env = env if env else get_current_env()
-    app_config = load_config(env=effective_env)
-
-    print(f"Loading config for environment: {effective_env}")
-
-    
 
     app = FastAPI(
         title="WIMI LLM WEB V4",
@@ -90,17 +64,18 @@ def run_web(env: str = "dev"):
             index_path = static_dir / "index.html"
             if index_path.exists():
                 return FileResponse(str(index_path))
-            return {"status": "ok", "message": "LLM CLI V3 API", "docs": "/docs"}
+            return {"status": "ok", "message": "LLM CLI V4 API", "docs": "/docs"}
 
     # 获取端口配置（从已加载的配置中获取，或使用默认值）
+    app_config = get_app_config()
     if app_config.server:
-        port = app_config.server.port
+        port = int(app_config.server.port)
         host = app_config.server.host
     else:
         port = 8000
         host = "0.0.0.0"
 
-    print(f"Starting LLM CLI V3 Web Server...")
+    print(f"Starting LLM CLI V4 Web Server...")
     print(f"http://{host}:{port}")
     print(f"API Docs: http://{host}:{port}/docs")
     logger.info(f"Server started on http://{host}:{port}")
@@ -110,13 +85,11 @@ def run_web(env: str = "dev"):
 
 def main():
     """主入口函数。"""
-    # 加载环境变量
-    _load_env_if_needed()
-    # 初始化日志系统
-    setup_logging()
+    # 使用新的初始化模块
+    ApplicationInitializer.initialize()
 
     parser = argparse.ArgumentParser(
-        description="LLM CLI V3 - 支持 CLI 和 Web 模式"
+        description="LLM CLI V4 - 支持 CLI 和 Web 模式"
     )
     parser.add_argument(
         "--mode",
@@ -151,9 +124,6 @@ def main():
         mode = "web"
     else:
         mode = args.mode
-
-    # 设置 Python 路径
-    setup_python_path()
 
     # 运行对应模式
     if mode == "cli":

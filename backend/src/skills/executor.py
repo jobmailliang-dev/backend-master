@@ -6,7 +6,7 @@
 import re
 from typing import Any, Dict, List, Optional
 
-from src.config.loader import load_config
+from src.core import get_app_config
 from src.skills.loader import SkillLoader, SkillLoadError
 from src.skills.parser import Skill
 
@@ -70,7 +70,7 @@ class SkillExecutor:
         """获取系统元数据（懒加载）。"""
         if self._system_metadata is None:
             try:
-                config = load_config()
+                config = get_app_config()
                 self._system_metadata = config.get_system_metadata_dict()
             except Exception:
                 self._system_metadata = {}

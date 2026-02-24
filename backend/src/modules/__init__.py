@@ -1,6 +1,9 @@
-"""功能模块注册 - 依赖注入配置"""
+"""功能模块注册 - Module 声明
 
-from injector import Injector, Module, singleton
+本模块仅导出 Module 类定义，实际的 Injector 实例化在 core/injector.py 中。
+"""
+
+from injector import Module, singleton
 from injector import Binder
 
 from .datasource import Connection, DatabaseManager
@@ -16,18 +19,18 @@ from .conversations import (
 )
 
 
-def _init_database():
-    """初始化数据库"""
-    conn = Connection("data/app.db")
-    conn.init_schema()
-    return conn
-
-
 class DatabaseModule(Module):
     """数据库模块配置"""
 
     def configure(self, binder: Binder):
         # 连接 - 单例，使用工厂函数确保目录创建
+
+        def _init_database():
+            """初始化数据库"""
+            conn = Connection("data/app.db")
+            conn.init_schema()
+            return conn
+
         binder.bind(
             Connection,
             to=_init_database,
@@ -99,30 +102,12 @@ class MessageModule(Module):
         )
 
 
-# 创建 Injector 实例
-injector = Injector([
-    DatabaseModule(),
-    TestModule(),
-    ToolModule(),
-    ConversationModule(),
-    MessageModule()
-])
-
-# 便捷函数
-def get_injector() -> Injector:
-    """获取 Injector 实例"""
-    return injector
-
-
-def get_test_service() -> TestService:
-    """获取 TestService 实例"""
-    return injector.get(TestService)
-
-
 __all__ = [
-    "injector",
-    "get_injector",
-    "get_test_service",
+    "DatabaseModule",
+    "TestModule",
+    "ToolModule",
+    "ConversationModule",
+    "MessageModule",
     "Test",
     "TestService",
     "TestDao",

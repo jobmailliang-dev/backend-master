@@ -3,7 +3,7 @@
 import json
 from typing import Optional
 
-from src.config.loader import load_config
+from src.core import get_app_config
 
 
 def wrap_javascript_code(code: str, params: dict, user_info: dict = None, inherit_from: Optional[str] = None) -> str:
@@ -20,7 +20,7 @@ def wrap_javascript_code(code: str, params: dict, user_info: dict = None, inheri
     """
     # 获取 system_metadata 作为默认值
     try:
-        config = load_config()
+        config = get_app_config()
         system_metadata = config.get_system_metadata_dict()
     except Exception:
         system_metadata = {}

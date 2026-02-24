@@ -4,10 +4,11 @@ from typing import Optional
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from src.api.models import ApiResponse
-from src.modules import ConversationService, MessageService, get_injector
+from src.modules import ConversationService, MessageService
+from src.core import injector
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
-_injector = get_injector()
+_injector = injector
 
 
 class CreateConversationRequest(BaseModel):

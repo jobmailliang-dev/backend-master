@@ -5,17 +5,17 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from src.config.loader import load_config
-from src.core.client import LLMClient
+from src.core import get_app_config, LLMClient
 from src.cli.output import EVENT_DONE, EVENT_ERROR
 from src.utils.stream_writer_util import create_queue_task, send_queue
-from src.modules import MessageService, get_injector
+from src.modules import MessageService
+from src.core import injector
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 # 全局客户端实例
 _client: Optional[LLMClient] = None
-_injector = get_injector()
+_injector = injector
 
 
 def get_message_service() -> MessageService:
@@ -27,7 +27,7 @@ def get_client() -> LLMClient:
     """获取或创建 LLM 客户端实例。"""
     global _client
     if _client is None:
-        config = load_config()
+        config = get_app_config()
         _client = LLMClient(
             openai_config=config.openai,
             tools_config=config.tools,
