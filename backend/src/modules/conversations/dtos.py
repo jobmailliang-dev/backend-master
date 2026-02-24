@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class ConversationDto(BaseModel):
     """对话数据传输对象"""
     id: str = Field(..., description="对话唯一标识")
+    userId: str = Field(default="", description="用户ID")
     title: str = Field(default="新对话", description="对话标题")
     preview: str = Field(default="", description="最新消息预览")
     createTime: int = Field(..., description="创建时间戳")
@@ -17,6 +18,7 @@ class ConversationDto(BaseModel):
         json_schema_extra = {
             "example": {
                 "id": "conv_abc123",
+                "userId": "user_123",
                 "title": "新对话",
                 "preview": "你好",
                 "createTime": 1704067200000,

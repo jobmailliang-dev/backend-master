@@ -7,9 +7,11 @@ import importlib
 import inspect
 import pkgutil
 from pathlib import Path
-from typing import Any
+from typing import Any, Type, TypeVar
 
 from injector import Injector, Module
+
+T = TypeVar("T")
 
 
 def _scan_modules() -> list[Module]:
@@ -59,8 +61,24 @@ def reload_modules() -> None:
     injector = Injector(_modules)
 
 
+def get_service(service_class: Type[T]) -> T:
+    """从 Injector 获取服务实例。
+
+    Args:
+        service_class: 服务类类型
+
+    Returns:
+        服务实例
+
+    Example:
+        message_service = get_service(MessageService)
+    """
+    return injector.get(service_class)
+
+
 __all__ = [
     "injector",
     "reload_modules",
+    "get_service",
     "Module",
 ]

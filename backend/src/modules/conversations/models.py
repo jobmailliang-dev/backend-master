@@ -9,6 +9,7 @@ import sqlite3
 class Conversation:
     """对话业务实体"""
     id: str = ""
+    user_id: str = ""
     title: str = "新对话"
     preview: str = ""
     create_time: int = 0
@@ -19,6 +20,7 @@ class Conversation:
         """转换为字典"""
         return {
             "id": self.id,
+            "userId": self.user_id,
             "title": self.title,
             "preview": self.preview,
             "createTime": self.create_time,
@@ -31,6 +33,7 @@ class Conversation:
         """从数据库行创建实体"""
         return cls(
             id=row["id"],
+            user_id=row["user_id"],
             title=row["title"],
             preview=row["preview"] or "",
             create_time=row["create_time"],

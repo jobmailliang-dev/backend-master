@@ -19,6 +19,7 @@ class ConversationDao:
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS conversations (
                 id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL DEFAULT '',
                 title TEXT NOT NULL DEFAULT '新对话',
                 preview TEXT DEFAULT '',
                 create_time INTEGER NOT NULL,
@@ -30,11 +31,12 @@ class ConversationDao:
     def create(self, conversation: Conversation) -> str:
         """创建对话"""
         sql = """
-            INSERT INTO conversations (id, title, preview, create_time, update_time, message_count)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO conversations (id, user_id, title, preview, create_time, update_time, message_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         self._conn.execute(sql, (
             conversation.id,
+            conversation.user_id,
             conversation.title,
             conversation.preview,
             conversation.create_time,
@@ -51,11 +53,17 @@ class ConversationDao:
         )
         return Conversation.from_row(row) if row else None
 
-    def get_all(self) -> List[Conversation]:
+    def get_all(self, user_id: str = "") -> List[Conversation]:
         """获取所有对话（按更新时间倒序）"""
-        rows = self._conn.query_all(
-            "SELECT * FROM conversations ORDER BY update_time DESC"
-        )
+        if user_id:
+            rows = self._conn.query_all(
+                "SELECT * FROM conversations WHERE user_id = ? ORDER BY update_time DESC",
+                (user_id,)
+            )
+        else:
+            rows = self._conn.query_all(
+                "SELECT * FROM conversations ORDER BY update_time DESC"
+            )
         return [Conversation.from_row(row) for row in rows]
 
     def update(self, conversation: Conversation) -> bool:

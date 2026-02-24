@@ -39,4 +39,5 @@ class MessageStoreImpl(IMessageStore):
     ) -> None:
         """保存消息到数据库"""
         tool_calls = kwargs.get("tool_calls")
+        print(f"save_message::: {content}")
         self._message_service.create_message(self._conversation_id, role, content, tool_calls)

@@ -75,9 +75,9 @@ class ConversationService(IConversationService):
         self._dao = dao
         self._message_dao = message_dao
 
-    def get_list(self) -> List[ConversationDto]:
+    def get_list(self, user_id: str = "") -> List[ConversationDto]:
         """获取所有对话"""
-        return [self.convert_dto(conv) for conv in self._dao.get_all()]
+        return [self.convert_dto(conv) for conv in self._dao.get_all(user_id)]
 
     def get_one(self, conversation_id: int) -> Optional[ConversationDto]:
         """获取单个对话（接口兼容）"""
@@ -91,12 +91,19 @@ class ConversationService(IConversationService):
     def create_one(self, data: dict = None) -> ConversationDto:
         """创建对话"""
         title = "新对话"
-        if data and data.get("title"):
-            title = data["title"]
+        user_id = ""
+        if data:
+            if data.get("title"):
+                title = data["title"]
+            if data.get("user_id"):
+                user_id = data["user_id"]
+            elif data.get("userId"):
+                user_id = data["userId"]
 
         now = int(time.time() * 1000)
         conversation = Conversation(
             id=generate_id(),
+            user_id=user_id,
             title=title,
             preview="",
             create_time=now,
@@ -160,6 +167,7 @@ class ConversationService(IConversationService):
 
         return ConversationDto(
             id=data.get("id", ""),
+            userId=data.get("userId", data.get("user_id", "")),
             title=data.get("title", "新对话"),
             preview=data.get("preview", ""),
             createTime=data.get("createTime", data.get("create_time", 0)),
