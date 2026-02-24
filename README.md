@@ -1,6 +1,6 @@
-# LLM CLI V3
+# LLM CLI V4
 
-LLM CLI V3 - 支持 Web 和 CLI 双模式的 AI 聊天应用。
+LLM CLI V4 - 支持 Web 和 CLI 双模式的 AI 聊天应用。
 
 ## 特性
 

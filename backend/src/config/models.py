@@ -8,6 +8,25 @@ from typing import Dict, List, Optional
 
 
 @dataclass
+class LLMConfig:
+    """统一的 LLM API 配置。
+
+    包含所有 LLM 提供商的通用参数，以及可选的 Qwen 特有参数。
+    """
+    provider: str = "openai"  # 提供商标识: "openai" | "qwen"
+    api_url: str = ""
+    api_key: str = ""
+    model: str = "gpt-3.5-turbo"
+    max_tokens: int = 1000
+    temperature: float = 0.7
+    system_message: str = "You are a helpful assistant."
+    use_stream: bool = False
+    # Qwen 特有参数
+    enable_thinking: bool = False
+    thinking_budget: int = 4000
+
+
+@dataclass
 class OpenAIConfig:
     """OpenAI API 配置。"""
     api_url: str
@@ -71,6 +90,8 @@ class SystemMetadata:
 class AppConfig:
     """应用完整配置。"""
     llm_provider: str = "openai"
+    llm: Optional[LLMConfig] = None  # 统一的 LLM 配置
+    # 向后兼容字段（保留以支持旧配置格式）
     openai: Optional[OpenAIConfig] = None
     qwen: Optional[QwenConfig] = None
     tools: Optional[ToolsConfig] = None

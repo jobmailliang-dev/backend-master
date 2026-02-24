@@ -29,10 +29,9 @@ def get_client() -> LLMClient:
     if _client is None:
         config = get_app_config()
         _client = LLMClient(
-            openai_config=config.openai,
+            llm_config=config.llm,
             tools_config=config.tools,
-            llm_provider=config.llm_provider,
-            qwen_config=config.qwen
+            metadata=config.get_system_metadata_dict()
         )
     return _client
 

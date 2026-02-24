@@ -1,4 +1,4 @@
-# LLM CLI V3 后端依赖
+# LLM CLI V4 后端依赖
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 python-multipart>=0.0.6

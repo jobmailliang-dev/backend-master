@@ -7,8 +7,9 @@ import asyncio
 import json
 from typing import Any, Dict, List, Optional, Union
 
-from src.adapters.base import LLMAdapter, LLMResponse
-from src.config.models import CLIConfig, OpenAIConfig, QwenConfig, ToolsConfig
+from src.adapters import get_adapter
+from src.adapters.base import LLMResponse
+from src.config.models import CLIConfig, LLMConfig, ToolsConfig
 from src.core.session import SessionManager
 from src.tools.registry import get_registry
 from src.utils.logger import get_logger
@@ -23,37 +24,24 @@ class LLMClient:
 
 	def __init__(
 		self,
-		openai_config: Optional[OpenAIConfig] = None,
+		llm_config: LLMConfig,
 		tools_config: Optional[ToolsConfig] = None,
-		metadata: Dict[str, str] = None,
-		adapter: LLMAdapter = None,
-		llm_provider: str = "openai",
-		qwen_config: Optional[QwenConfig] = None,
+		metadata: Dict[str, str] = None
 	):
 		"""初始化客户端。
 
 		Args:
-			openai_config: OpenAI 配置
+			llm_config: 统一的 LLM 配置（必填）
 			tools_config: 工具配置
 			metadata: 元数据
-			adapter: 自定义适配器（优先级最高）
-			llm_provider: LLM 提供商名称
-			qwen_config: Qwen 配置
 		"""
 		self.tools_config = tools_config
 		self.metadata = metadata or {}
 
-		# 初始化适配器
-		if adapter is not None:
-			self.adapter = adapter
-		elif llm_provider == "qwen" and qwen_config is not None:
-			from src.adapters.qwen import QwenClientAdapter
-			self.adapter = QwenClientAdapter(qwen_config)
-			self.config = qwen_config
-		else:
-			from src.adapters.openai import OpenAIClientAdapter
-			self.adapter = OpenAIClientAdapter(openai_config)
-			self.config = openai_config
+		# 使用 llm_config 和 get_adapter 获取适配器
+		provider = llm_config.provider
+		self.adapter = get_adapter(provider, llm_config)
+		self.config = llm_config
 
 		# 初始化会话
 		system_message = getattr(self.config, 'system_message', 'You are a helpful assistant.')

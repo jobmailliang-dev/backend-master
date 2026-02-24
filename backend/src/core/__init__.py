@@ -12,7 +12,7 @@ from src.core.initializer import (
     PythonPathInitializer,
     get_app_config
 )
-from src.core.injector import injector
+from .injector import injector
 
 __all__ = [
     'LLMClient',

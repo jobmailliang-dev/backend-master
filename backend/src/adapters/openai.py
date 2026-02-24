@@ -8,13 +8,13 @@ from typing import Any, Dict, Generator, List
 from openai import OpenAI
 
 from src.adapters.base import LLMAdapter, LLMResponse
-from src.config.models import OpenAIConfig
+from src.config.models import LLMConfig
 
 
 class OpenAIClientAdapter(LLMAdapter):
     """OpenAI 兼容 API 适配器。"""
 
-    def __init__(self, config: OpenAIConfig):
+    def __init__(self, config: LLMConfig):
         """初始化适配器。"""
         self.client = OpenAI(
             base_url=config.api_url if config.api_url else None,

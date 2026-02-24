@@ -1,7 +1,7 @@
 [project]
 name = "llm-cli-v3"
 version = "3.0.0"
-description = "LLM CLI V3 - Web + CLI 双模式"
+description = "LLM CLI V4 - Web + CLI 双模式"
 requires-python = ">=3.9"
 dependencies = [
     "fastapi>=0.109.0",

@@ -79,7 +79,7 @@ if static_dir.exists():
         index_path = static_dir / "index.html"
         if index_path.exists():
             return FileResponse(str(index_path))
-        return {"status": "ok", "message": "LLM CLI V3 API", "docs": "/docs"}
+        return {"status": "ok", "message": "LLM CLI V4 API", "docs": "/docs"}
 ```
 
 该代码已存在且逻辑正确，无需修改。

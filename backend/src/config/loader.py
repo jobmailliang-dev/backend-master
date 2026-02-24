@@ -13,6 +13,7 @@ import yaml
 from src.config.dotenv_loader import expand_env_in_dict
 from src.config.models import (
     AppConfig,
+    LLMConfig,
     OpenAIConfig,
     QwenConfig,
     ToolsConfig,
@@ -158,9 +159,18 @@ def load_config(config_path: Optional[str] = None, env: Optional[str] = None) ->
     # 解析 LLM provider 配置
     llm_provider = raw_config.get('llm', {}).get('provider', 'openai')
 
-    # 解析各配置部分
-    openai_config = _parse_openai_config(raw_config.get('openai', {}))
-    qwen_config = _parse_qwen_config(raw_config.get('qwen', {}))
+    # 根据 llm_provider 决定加载哪个配置节点
+    if llm_provider == "qwen":
+        llm_config = _parse_qwen_config(raw_config.get('qwen', {}))
+        # 保留向后兼容
+        openai_config = _parse_openai_config(raw_config.get('openai', {}))
+        qwen_config = None  # 不再需要单独存储
+    else:
+        llm_config = _parse_openai_config(raw_config.get('openai', {}))
+        # 保留向后兼容
+        qwen_config = _parse_qwen_config(raw_config.get('qwen', {}))
+        openai_config = None  # 不再需要单独存储
+
     tools_config = _parse_tools_config(raw_config.get('tools', {}))
     cli_config = _parse_cli_config(raw_config.get('cli', {}))
     server_config = _parse_server_config(raw_config.get('server', {}))
@@ -168,6 +178,7 @@ def load_config(config_path: Optional[str] = None, env: Optional[str] = None) ->
 
     return AppConfig(
         llm_provider=llm_provider,
+        llm=llm_config,
         openai=openai_config,
         qwen=qwen_config,
         tools=tools_config,
@@ -177,9 +188,10 @@ def load_config(config_path: Optional[str] = None, env: Optional[str] = None) ->
     )
 
 
-def _parse_openai_config(raw: dict) -> OpenAIConfig:
-    """解析 OpenAI 配置。"""
-    return OpenAIConfig(
+def _parse_openai_config(raw: dict) -> LLMConfig:
+    """解析 OpenAI 配置为统一的 LLMConfig。"""
+    return LLMConfig(
+        provider="openai",
         api_url=raw.get('api_url', ''),
         api_key=raw.get('api_key', ''),
         model=raw.get('model', 'gpt-3.5-turbo'),
@@ -187,12 +199,15 @@ def _parse_openai_config(raw: dict) -> OpenAIConfig:
         temperature=raw.get('temperature', 0.7),
         system_message=raw.get('system_message', 'You are a helpful assistant.'),
         use_stream=raw.get('use_stream', False),
+        enable_thinking=False,
+        thinking_budget=4000,
     )
 
 
-def _parse_qwen_config(raw: dict) -> QwenConfig:
-    """解析 Qwen 配置。"""
-    return QwenConfig(
+def _parse_qwen_config(raw: dict) -> LLMConfig:
+    """解析 Qwen 配置为统一的 LLMConfig。"""
+    return LLMConfig(
+        provider="qwen",
         api_url=raw.get('api_url', ''),
         api_key=raw.get('api_key', ''),
         model=raw.get('model', 'qwen-turbo'),

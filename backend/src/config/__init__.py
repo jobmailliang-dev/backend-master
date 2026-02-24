@@ -12,7 +12,7 @@ from src.config.dotenv_loader import (
     load_dotenv,
 )
 from src.config.loader import get_current_env, load_config
-from src.config.models import AppConfig, OpenAIConfig, ToolsConfig, CLIConfig, ServerConfig
+from src.config.models import AppConfig, LLMConfig, OpenAIConfig, ToolsConfig, CLIConfig, ServerConfig
 
 __all__ = [
     'load_config',
@@ -24,6 +24,7 @@ __all__ = [
     'get_env',
     'get_project_root',
     'AppConfig',
+    'LLMConfig',
     'OpenAIConfig',
     'ToolsConfig',
     'CLIConfig',

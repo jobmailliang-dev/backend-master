@@ -20,11 +20,9 @@ class CLIInterface:
         """初始化 CLI 界面。"""
         self.config = config
         self.client = LLMClient(
-            openai_config=config.openai,
+            llm_config=config.llm,
             tools_config=config.tools,
             metadata=config.get_system_metadata_dict(),
-            llm_provider=config.llm_provider,
-            qwen_config=config.qwen,
         )
         self.user_prefix = config.cli.user_prefix
         self.title = config.cli.title
