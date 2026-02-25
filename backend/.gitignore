@@ -77,3 +77,4 @@ htmlcov/
 .tox/
 pyproject.toml
 .zcf/
+*.db/
