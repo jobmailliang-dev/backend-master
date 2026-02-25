@@ -27,3 +27,6 @@ python-dotenv>=1.0.0
 # MCP 协议支持
 mcp>=1.0.0
 anyio>=3.0.0
+
+# 数据库 ORM
+sqlalchemy>=2.0.0

@@ -5,8 +5,9 @@
 
 from injector import Module, singleton
 from injector import Binder
+from sqlalchemy.orm import Session
 
-from .datasource import Connection, DatabaseManager
+from .datasource import DatabaseManager, get_session_local
 from .test import Test, TestService, TestDao
 from .tools import Tool, ToolService, ToolDao
 from .conversations import (
@@ -23,17 +24,28 @@ class DatabaseModule(Module):
     """数据库模块配置"""
 
     def configure(self, binder: Binder):
-        # 连接 - 单例，使用工厂函数确保目录创建
-
+        # 初始化数据库
         def _init_database():
             """初始化数据库"""
-            conn = Connection("data/app.db")
-            conn.init_schema()
-            return conn
+            db_manager = DatabaseManager("data/app.db")
+            db_manager.init_database()
+            return db_manager
 
         binder.bind(
-            Connection,
+            DatabaseManager,
             to=_init_database,
+            scope=singleton
+        )
+
+        # SQLAlchemy Session - 单例
+        def _get_session() -> Session:
+            """获取 SQLAlchemy Session"""
+            session_local = get_session_local()
+            return session_local()
+
+        binder.bind(
+            Session,
+            to=_get_session,
             scope=singleton
         )
 
@@ -120,6 +132,5 @@ __all__ = [
     "MessageDao",
     "ConversationService",
     "MessageService",
-    "Connection",
     "DatabaseManager"
 ]

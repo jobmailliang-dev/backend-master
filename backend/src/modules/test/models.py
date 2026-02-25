@@ -2,32 +2,28 @@
 
 from dataclasses import dataclass
 from typing import Optional
-import sqlite3
+
+from sqlalchemy import String, TIMESTAMP, Integer
+from sqlalchemy.orm import Mapped, mapped_column
+
+from ..datasource.database import Base
 
 
 @dataclass
-class Test:
-    """Test 业务实体"""
-    id: Optional[int] = None
-    name: str = ""
-    value: str = ""
-    created_at: Optional[str] = None
+class Test(Base):
+    """Test 实体 - 同时是 ORM 模型也是业务实体"""
+    __tablename__ = "test"
+
+    # 数据库字段
+    id: Mapped[Optional[int]] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    value: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
 
     def to_dict(self) -> dict:
-        """转换为字典"""
         return {
             "id": self.id,
             "name": self.name,
             "value": self.value,
             "created_at": self.created_at
         }
-
-    @classmethod
-    def from_row(cls, row: sqlite3.Row) -> "Test":
-        """从数据库行创建实体"""
-        return cls(
-            id=row["id"],
-            name=row["name"],
-            value=row["value"],
-            created_at=row["created_at"]
-        )
