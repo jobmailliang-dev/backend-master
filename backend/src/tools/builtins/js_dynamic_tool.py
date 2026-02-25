@@ -66,7 +66,7 @@ class DynamicTool(BaseTool):
             执行结果字典
         """
         # 从 session 获取 metadata
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Dict[str, Any] = {}
         session = get_session()
         if session:
             metadata = session._metadata
@@ -80,7 +80,14 @@ class DynamicTool(BaseTool):
         )
         # 创建新的 QuickJSTool 实例，避免线程安全问题
         tool = QuickJSTool()
+
+        tool.expose_dict(metadata, "metadata")
+
+
         result = tool.invoke(code=script, tool_name=self._tool.name)
+
+        tool.release_dict("metadata")
+
         # 直接返回结果
         return result["result"]
 

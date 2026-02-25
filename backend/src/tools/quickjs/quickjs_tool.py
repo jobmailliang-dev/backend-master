@@ -5,13 +5,14 @@
 
 import asyncio
 import json as pyjson
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import quickjs  # pyright: ignore[reportImplicitRelativeImport]
 
 from src.tools.base import BaseTool
 from src.tools.quickjs.func_console import apply as apply_console
 from src.tools.quickjs.call_tool import apply as apply_call_tool
+from src.tools.quickjs.dict_proxy import DictProxy, DictProxyManager
 
 
 class QuickJSTool(BaseTool):
@@ -24,12 +25,228 @@ class QuickJSTool(BaseTool):
             description="Execute JavaScript code and return the result",
         )
         self._context: quickjs.Context | None = None
+        self._proxy_manager: DictProxyManager = DictProxyManager()
+        self._dict_proxy_setup: bool = False
 
     def _get_context(self) -> quickjs.Context:
         """获取或创建 JS 上下文。"""
         if self._context is None:
             self._context = quickjs.Context()
+        # 确保 dict proxy 函数已注册
+        if not self._dict_proxy_setup:
+            self._setup_dict_proxy()
         return self._context
+
+    def _setup_dict_proxy(self) -> None:
+        """设置 dict 代理的回调函数。"""
+        ctx = self._context
+        if ctx is None:
+            return
+
+        # 注册 dict 操作回调
+        ctx.add_callable("_dictGet", self._js_dict_get)
+        ctx.add_callable("_dictSet", self._js_dict_set)
+        ctx.add_callable("_dictHas", self._js_dict_has)
+        ctx.add_callable("_dictKeys", self._js_dict_keys)
+        ctx.add_callable("_dictDelete", self._js_dict_delete)
+        ctx.add_callable("_createNestedProxy", self._js_create_nested_proxy)
+
+        self._dict_proxy_setup = True
+
+    def _js_dict_get(self, obj_id: str, key: str) -> Any:
+        """JS 端 getter 回调。"""
+        proxy = self._proxy_manager.get(obj_id)
+        if not proxy:
+            return None
+        value = proxy.get(key)
+        # 如果返回的是 DictProxy，需要将其注册到 manager 中
+        if isinstance(value, DictProxy):
+            # 检查是否已经注册，如果没有则注册
+            if not self._proxy_manager.get(value.obj_id):
+                # 创建新的代理数据包装并注册
+                nested_data = value.to_dict()
+                # 使用相同的 obj_id 注册
+                self._proxy_manager._proxies[value.obj_id] = DictProxy(nested_data, value.obj_id)
+            # 返回特殊标记格式
+            return f"__PROXY:{value.obj_id}__"
+        if isinstance(value, list):
+            # 列表中的嵌套 dict 需要特殊处理
+            result = []
+            for item in value:
+                if isinstance(item, DictProxy):
+                    # 检查是否已经注册
+                    if not self._proxy_manager.get(item.obj_id):
+                        nested_data = item.to_dict()
+                        self._proxy_manager._proxies[item.obj_id] = DictProxy(nested_data, item.obj_id)
+                    result.append(f"__PROXY:{item.obj_id}__")
+                else:
+                    result.append(item)
+            return result
+        return value
+
+    def _js_dict_set(self, obj_id: str, key: str, value: Any) -> None:
+        """JS 端 setter 回调。"""
+        proxy = self._proxy_manager.get(obj_id)
+        if proxy:
+            proxy.set(key, value)
+        return None
+
+    def _js_dict_has(self, obj_id: str, key: str) -> bool:
+        """JS 端 has 检查回调。"""
+        proxy = self._proxy_manager.get(obj_id)
+        return proxy.has(key) if proxy else False
+
+    def _js_dict_keys(self, obj_id: str) -> List[str]:
+        """JS 端 keys 获取回调。"""
+        proxy = self._proxy_manager.get(obj_id)
+        return proxy.keys() if proxy else []
+
+    def _js_dict_delete(self, obj_id: str, key: str) -> bool:
+        """JS 端 delete 操作回调。"""
+        proxy = self._proxy_manager.get(obj_id)
+        return proxy.delete(key) if proxy else False
+
+    def _js_create_nested_proxy(self, obj_id: str) -> Any:
+        """创建嵌套代理的回调。"""
+        proxy = self._proxy_manager.get(obj_id)
+        if not proxy:
+            return None
+        # 返回代理 ID，JS 端会创建 Proxy 包装
+        return {"__proxy_id": obj_id}
+
+    def _to_js_value(self, value: Any) -> Any:
+        """Python 值转换为 JS 可用值。
+
+        Args:
+            value: Python 值
+
+        Returns:
+            转换后的值，dict 会转为包含 __proxy_id 的对象
+        """
+        if isinstance(value, DictProxy):
+            # 返回代理 ID，JS 端会通过 Proxy 拦截
+            return {"__proxy_id": value.obj_id}
+        if isinstance(value, list):
+            return [self._to_js_value(item) for item in value]
+        return value
+
+    def expose_dict(self, py_dict: dict, name: str = None) -> str:
+        """暴露 Python dict 到 JS 环境。
+
+        Args:
+            py_dict: 要暴露的 Python 字典
+            name: 可选的变量名
+
+        Returns:
+            JS 环境中的变量名
+
+        Example:
+            >>> tool = QuickJSTool()
+            >>> data = {"name": "Alice", "age": 30}
+            >>> var_name = tool.expose_dict(data, "userData")
+            >>> tool.eval("userData.name = 'Bob'")
+            >>> print(data["name"])  # 输出: "Bob"
+        """
+        ctx = self._get_context()
+        obj_id = self._proxy_manager.create(py_dict, name)
+
+        # 在 JS 中创建 Proxy 对象
+        proxy_code = f"""
+        (function() {{
+            const objId = '{obj_id}';
+            const createProxy = function(nestedObjId) {{
+                return new Proxy({{}}, {{
+                    get: function(target, prop) {{
+                        if (prop === '__objId__') return nestedObjId;
+                        if (prop === '_isProxy') return true;
+                        const result = _dictGet(nestedObjId, prop);
+                        // 检查是否是嵌套代理标记
+                        if (typeof result === 'string' && result.startsWith('__PROXY:')) {{
+                            const nestedId = result.slice(8, -2);
+                            return createProxy(nestedId);
+                        }}
+                        // 检查数组中的嵌套代理
+                        if (Array.isArray(result)) {{
+                            return result.map(function(item) {{
+                                if (typeof item === 'string' && item.startsWith('__PROXY:')) {{
+                                    const nestedId = item.slice(8, -2);
+                                    return createProxy(nestedId);
+                                }}
+                                return item;
+                            }});
+                        }}
+                        return result;
+                    }},
+                    set: function(target, prop, value) {{
+                        _dictSet(nestedObjId, prop, value);
+                        return true;
+                    }},
+                    has: function(target, prop) {{
+                        return _dictHas(nestedObjId, prop);
+                    }},
+                    deleteProperty: function(target, prop) {{
+                        return _dictDelete(nestedObjId, prop);
+                    }},
+                    ownKeys: function(target) {{
+                        return _dictKeys(nestedObjId);
+                    }},
+                    getOwnPropertyDescriptor: function(target, prop) {{
+                        return {{
+                            enumerable: true,
+                            configurable: true,
+                            value: this.get(target, prop)
+                        }};
+                    }}
+                }});
+            }};
+            const proxy = createProxy(objId);
+            return proxy;
+        }})()
+        """
+
+        js_proxy = ctx.eval(proxy_code)
+
+        # 使用固定变量名
+        var_name = name or f"exposed_dict_{obj_id}"
+        ctx.set(var_name, js_proxy)
+
+        return var_name
+
+    def release_dict(self, name: str) -> bool:
+        """释放已暴露的 dict。
+
+        Args:
+            name: expose_dict 返回的变量名
+
+        Returns:
+            是否成功释放
+
+        Example:
+            >>> tool.release_dict("userData")
+        """
+        if self._proxy_manager.release(name):
+            ctx = self._get_context()
+            # 使用 eval 删除全局变量
+            ctx.eval(f"delete globalThis.{name}")
+            return True
+        return False
+
+    def get_dict(self, name: str) -> Optional[dict]:
+        """获取暴露后 dict 的原始引用。
+
+        Args:
+            name: expose_dict 返回的变量名
+
+        Returns:
+            原始 Python dict 引用
+
+        Example:
+            >>> tool.expose_dict(data, "userData")
+            >>> tool.eval("userData.name = 'Bob'")
+            >>> print(tool.get_dict("userData"))  # {'name': 'Bob', ...}
+        """
+        proxy = self._proxy_manager.get(name)
+        return proxy.to_dict() if proxy else None
 
     def _register_console_functions(self) -> None:
         """注册 console 和工具调用函数。"""
