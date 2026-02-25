@@ -5,7 +5,6 @@
 """
 
 from typing import List, Optional, Dict, Any
-import json
 from injector import inject
 from .models import Tool, ToolParameter
 from .dao import ToolDao
@@ -226,12 +225,18 @@ class ToolService(IToolService):
         if self._dao.get_by_name(data["name"]):
             raise ValidException(f"工具名称 '{data['name']}' 已存在", "name")
 
-        # 构建工具对象
+        # 构建工具对象，将参数字典列表转换为 ToolParameter 对象列表
+        params_data = data.get("parameters", [])
+        if params_data:
+            params_list = ToolParameter.from_list(params_data)
+        else:
+            params_list = []
+
         tool = Tool(
             name=data["name"],
             description=data["description"],
             is_active=data.get("is_active", True),
-            parameters_json=data.get("parameters", []),
+            parameters=params_list,
             inherit_from=data.get("inherit_from"),
             code=data.get("code", "")
         )
@@ -275,7 +280,11 @@ class ToolService(IToolService):
             tool.is_active = data["is_active"]
 
         if "parameters" in data:
-            tool.parameters_json = json.dumps(data["parameters"])
+            params_data = data["parameters"]
+            if params_data:
+                tool.parameters = ToolParameter.from_list(params_data)
+            else:
+                tool.parameters = []
 
         if "inherit_from" in data:
             tool.inherit_from = data["inherit_from"]

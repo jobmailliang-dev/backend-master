@@ -50,7 +50,7 @@ class ToolDao:
         orm.name = tool.name
         orm.description = tool.description
         orm.is_active = tool.is_active
-        orm.parameters_json = tool.parameters_json
+        orm.parameters = tool.parameters
         orm.inherit_from = tool.inherit_from
         orm.code = tool.code
         self._session.commit()
