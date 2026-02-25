@@ -231,7 +231,7 @@ class ToolService(IToolService):
             name=data["name"],
             description=data["description"],
             is_active=data.get("is_active", True),
-            parameters_json=json.dumps(data.get("parameters", [])),
+            parameters_json=data.get("parameters", []),
             inherit_from=data.get("inherit_from"),
             code=data.get("code", "")
         )
