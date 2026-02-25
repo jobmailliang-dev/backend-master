@@ -3,7 +3,9 @@
 from typing import Any, Dict, List
 
 from src.core.message_store import IMessageStore
-
+from src.core.session_context import get_session
+from src.modules.conversations import ConversationService, MessageService
+from src.core import get_service
 
 
 class MessageStoreImpl(IMessageStore):
@@ -18,8 +20,6 @@ class MessageStoreImpl(IMessageStore):
         Args:
             conversation_id: 对话 ID
         """
-        from src.modules.conversations import ConversationService, MessageService
-        from src.modules import get_service
         
         self._conversation_id = conversation_id
         self._message_service: MessageService = get_service(MessageService)
@@ -45,8 +45,15 @@ class MessageStoreImpl(IMessageStore):
     ) -> None:
         """保存消息到数据库"""
         tool_calls = kwargs.get("tool_calls")
-        print(f"save_message::: {content}")
-        self._message_service.create_message(self._conversation_id, role, content, tool_calls)
+        tool_call_id = kwargs.get("tool_call_id")
+
+        # 获取 session 中的 metadata
+        session = get_session()
+        meta_data = session._metadata if session else None
+
+        self._message_service.create_message(
+            self._conversation_id, role, content, tool_calls, tool_call_id=tool_call_id, meta_data=meta_data
+        )
 
     def load_metadata(self) -> Dict[str, Any]:
         """从数据库加载对话元数据"""

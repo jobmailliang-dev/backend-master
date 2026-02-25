@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from src.api.models import ApiResponse
 from src.modules import ToolService
-from src.modules import get_service
+from src.core import get_service
 from src.modules.base import ValidException, ApiException
 from src.modules.tools.dtos import ToolDto
 from src.utils.logger import get_logger

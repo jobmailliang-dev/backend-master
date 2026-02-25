@@ -5,11 +5,18 @@ This module contains classes responsible for initializing various aspects
 of the application such as environment variables, logging system, Python path, and configuration.
 """
 
+import importlib
+import inspect
+import pkgutil
 import sys
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Type, TypeVar
 import logging
+
+from injector import Injector, Module
+
+T = TypeVar("T")
 
 # Import the dotenv loader functionality
 from src.config.dotenv_loader import load_dotenv
@@ -212,6 +219,81 @@ class ConfigInitializer:
         return cls.setup_config(effective_env)
 
 
+class InjectorModuleInitializer:
+    """模块依赖注入初始化器。
+
+    扫描 src.modules 包下的所有子模块，收集继承自 Module 的类，
+    并创建全局 Injector 实例。
+    """
+
+    _injector: Optional["Injector"] = None
+
+    @classmethod
+    def _scan_modules(cls) -> list[Module]:
+        """从 modules/__init__.py 中获取所有 Module 类并实例化。
+
+        Returns:
+            Module 实例列表
+        """
+        modules: list[Module] = []
+
+        try:
+            # 导入 modules 包
+            import src.modules as modules_module
+            from src.modules import __all__ as modules_all
+
+            # 遍历 __all__ 中的所有名称
+            for module_class_name in modules_all:
+                # 从 modules 包中获取实际的类对象
+                module_class = getattr(modules_module, module_class_name, None)
+                # 确保获取到的是类而不是其他对象
+                if isinstance(module_class, type):
+                    # 检查是否是 Module 的子类
+                    if issubclass(module_class, Module) and module_class is not Module:
+                        try:
+                            # 创建类的实例
+                            module_instance = module_class()
+                            modules.append(module_instance)
+                            print(f"[initializer] Loaded module: {module_class_name}")
+                        except Exception as e:
+                            print(f"[initializer] Warning: Failed to instantiate {module_class_name}: {e}")
+                else:
+                    print(f"[initializer] Warning: {module_class_name} is not a class, skipping...")
+
+        except ImportError as e:
+            print(f"[initializer] Failed to import modules: {e}")
+
+        return modules
+
+    @classmethod
+    def init_modules(cls) -> None:
+        """初始化所有模块的依赖注入容器。"""
+        if cls._injector is not None:
+            logging.debug("Modules already initialized, skipping")
+            return
+        cls._injector = Injector(cls._scan_modules())
+        logging.info("Module dependency injection initialized")
+
+    @classmethod
+    def get_injector(cls) -> "Injector":
+        """获取全局 Injector 实例。"""
+        if cls._injector is None:
+            raise RuntimeError("Modules not initialized yet. Call init_modules() first.")
+        return cls._injector
+
+    @classmethod
+    def get_service(cls, service_class: Type[T]) -> T:
+        """从 Injector 获取服务实例。
+
+        Args:
+            service_class: 服务类类型
+
+        Returns:
+            服务实例
+        """
+        return cls.get_injector().get(service_class)
+
+
 class ApplicationInitializer:
     """
     Main application initializer that orchestrates all initialization steps.
@@ -230,6 +312,7 @@ class ApplicationInitializer:
         2. Set up logging system
         3. Configure Python path
         4. Load application configuration
+        5. Initialize module dependency injection
 
         Args:
             env: Environment name (dev, prod, local), defaults to APP_ENV or 'dev'
@@ -250,10 +333,10 @@ class ApplicationInitializer:
         global _app_config
         _app_config = ConfigInitializer.setup_config(env)
 
+        # Step 5: Initialize module dependency injection
+        InjectorModuleInitializer.init_modules()
 
         logging.info("Application initialization completed successfully")
-
-
 
 
 def get_app_config() -> AppConfig:
@@ -271,3 +354,26 @@ def get_app_config() -> AppConfig:
         # 尝试从 ConfigInitializer 获取
         _app_config = ConfigInitializer.get_config()
     return _app_config
+
+
+def get_injector():
+    """获取全局 Injector 实例。
+
+    委托给 InjectorModuleInitializer.get_injector()。
+    """
+    return InjectorModuleInitializer.get_injector()
+
+
+def get_service(service_class: Type[T]) -> T:
+    """从 Injector 获取服务实例。
+
+    委托给 InjectorModuleInitializer.get_service()。
+
+    Args:
+        service_class: 服务类类型
+
+    Returns:
+        服务实例
+    """
+    return InjectorModuleInitializer.get_service(service_class)
+

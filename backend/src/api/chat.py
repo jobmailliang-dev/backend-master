@@ -8,8 +8,7 @@ from pydantic import BaseModel
 from src.core import get_app_config, LLMClient, IMessageStore
 from src.cli.output import EVENT_DONE, EVENT_ERROR
 from src.utils.stream_writer_util import create_queue_task, send_queue
-from src.modules import MessageService
-from src.modules.conversations import MessageStoreImpl
+from src.modules import MessageService, get_message_store
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -66,7 +65,7 @@ async def _run_chat_stream(message: str, conversation_id: Optional[str] = None) 
         # 创建消息存储实现（每次创建新实例）
         message_store: Optional[IMessageStore] = None
         if conversation_id:
-            message_store = MessageStoreImpl(conversation_id)
+            message_store = get_message_store(conversation_id)
 
         # 创建客户端，传入 message_store
         client = create_client(message_store=message_store)

@@ -50,6 +50,7 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text)
     timestamp: Mapped[datetime] = mapped_column(TIMESTAMP, default=datetime.now)
     tool_calls: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    tool_call_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -58,5 +59,6 @@ class Message(Base):
             "role": self.role,
             "content": self.content,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp else "",
-            "tool_calls": self.tool_calls or []
+            "tool_calls": self.tool_calls or [],
+            "tool_call_id": self.tool_call_id
         }

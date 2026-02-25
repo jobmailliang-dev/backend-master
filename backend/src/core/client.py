@@ -12,6 +12,7 @@ from src.adapters import get_adapter
 from src.adapters.base import LLMResponse
 from src.config.models import CLIConfig, LLMConfig, ToolsConfig
 from src.core.session import SessionManager
+from src.core.session_context import set_session
 from src.core.message_store import IMessageStore
 from src.tools.registry import get_registry
 from src.utils.logger import get_logger
@@ -58,6 +59,9 @@ class LLMClient:
 		# 工具配置
 		self.allowed_tools = set(tools_config.allowed_tools) if tools_config.allowed_tools else set()
 		self.show_tool_calls = tools_config.show_tool_calls
+
+		# 设置 session 上下文，使工具可通过 get_session() 访问
+		set_session(self.session)
 
 	def chat(self, user_message: str) -> str:
 		"""发送消息并获取回复（始终使用工具调用）。"""

@@ -45,10 +45,6 @@ class IConversationService(IService[ConversationDto, str]):
         """更新对话标题"""
         ...
 
-    def update_preview(self, conversation_id: str, preview: str) -> Optional[ConversationDto]:
-        """更新对话预览"""
-        ...
-
     def delete_by_id(self, conversation_id: str) -> bool:
         """删除对话"""
         ...
@@ -120,9 +116,6 @@ class ConversationService(IConversationService):
 
     def update(self, conversation_id: str, data: dict) -> Optional[Conversation]:
         """更新对话"""
-        return self.update_by_id(conversation_id, data)
-
-    def update_by_id(self, conversation_id: str, data: dict) -> Optional[Conversation]:
         """根据ID更新对话"""
         conv = self._dao.get_by_id(conversation_id)
         if not conv:
@@ -139,15 +132,13 @@ class ConversationService(IConversationService):
         self._dao.update(conv)
         return conv
 
+        
+
     def update_title(self, conversation_id: str, title: str) -> Optional[ConversationDto]:
         """更新对话标题"""
-        conv = self.update_by_id(conversation_id, {"title": title})
+        conv = self.update(conversation_id, {"title": title})
         return self.convert_dto(conv) if conv else None
 
-    def update_preview(self, conversation_id: str, preview: str) -> Optional[ConversationDto]:
-        """更新对话预览"""
-        conv = self.update_by_id(conversation_id, {"preview": preview})
-        return self.convert_dto(conv) if conv else None
 
     def delete_by_id(self, conversation_id: str) -> bool:
         """删除对话"""
@@ -211,9 +202,18 @@ class MessageService(IMessageService):
         return self.create_message(conversation_id, role, content)
 
     def create_message(
-        self, conversation_id: str, role: str, content: str, tool_calls: list = None
+        self, conversation_id: str, role: str, content: str, tool_calls: list = None, tool_call_id: str = None, meta_data: dict = None
     ) -> MessageDto:
-        """创建消息并更新对话"""
+        """创建消息并更新对话
+
+        Args:
+            conversation_id: 对话 ID
+            role: 消息角色
+            content: 消息内容
+            tool_calls: 工具调用列表
+            tool_call_id: 工具调用 ID
+            meta_data: 对话元数据，如果提供则更新到 Conversation
+        """
         now = datetime.now()
 
         message = Message(
@@ -222,7 +222,8 @@ class MessageService(IMessageService):
             role=role,
             content=content,
             timestamp=now,
-            tool_calls=tool_calls or []
+            tool_calls=tool_calls or [],
+            tool_call_id=tool_call_id
         )
         self._dao.create(message)
 
@@ -234,6 +235,9 @@ class MessageService(IMessageService):
             if role == "assistant":
                 preview = content[:50] if content else ""
 
+            # 优先使用传入的 metadata，否则使用数据库中的
+            update_meta = meta_data if meta_data is not None else conv.meta_data
+
             self._conversation_dao.update(Conversation(
                 id=conversation_id,
                 title=conv.title,
@@ -241,7 +245,7 @@ class MessageService(IMessageService):
                 create_time=conv.create_time,
                 update_time=now,
                 message_count=message_count,
-                meta_data=conv.meta_data
+                meta_data=update_meta
             ))
 
         return self.convert_dto(message)

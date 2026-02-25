@@ -267,7 +267,7 @@ class TestToolModels:
             name="test_tool",
             description="测试工具",
             is_active=True,
-            parameters_json='[{"name":"p1","description":"p1 desc","type":"string","required":true}]',
+            parameters='[{"name":"p1","description":"p1 desc","type":"string","required":true}]',
             code="print('hello')"
         )
 

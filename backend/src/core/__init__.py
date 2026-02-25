@@ -5,14 +5,17 @@
 
 from src.core.client import LLMClient
 from src.core.initializer import (
-    ApplicationInitializer,
     ConfigInitializer,
+    InjectorModuleInitializer,
+    ApplicationInitializer,
     EnvironmentLoader,
     LoggingInitializer,
     PythonPathInitializer,
-    get_app_config
+    get_app_config,
+    get_service
 )
 from src.core.message_store import IMessageStore
+from src.core.session_context import get_session, set_session
 
 __all__ = [
     'LLMClient',
@@ -20,7 +23,11 @@ __all__ = [
     'get_app_config',
     'ApplicationInitializer',
     'ConfigInitializer',
+    'InjectorModuleInitializer',
     'EnvironmentLoader',
     'LoggingInitializer',
     'PythonPathInitializer',
+    'get_service',
+    'get_session',
+    'set_session',
 ]

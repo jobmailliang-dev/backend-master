@@ -1,3 +1,4 @@
+
 """动态工具类 - 从数据库加载的工具"""
 
 from typing import Any, Dict
@@ -32,6 +33,7 @@ class DynamicTool(BaseTool):
         properties = {}
         required = []
         for p in params:
+            print(f"111111111={p}")
             prop: Dict[str, Any] = {
                 "type": p.type,
                 "description": p.description

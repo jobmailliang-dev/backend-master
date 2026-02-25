@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from src.api.models import ApiResponse
 from src.modules import ConversationService, MessageService
-from src.modules import get_service
+from src.core import get_service
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -80,7 +80,7 @@ async def update_conversation(request: UpdateConversationRequest = None):
     if not data:
         return ApiResponse.fail("没有需要更新的字段")
 
-    conv = service.update_by_id(request.id, data)
+    conv = service.update(request.id, data)
     if not conv:
         return ApiResponse.fail("对话不存在")
 

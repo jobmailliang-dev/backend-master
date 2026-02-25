@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from src.tools.base import BaseTool
+from src.core.session_context import get_session
 
 
 class ReadFileTool(BaseTool):
@@ -48,6 +49,13 @@ class ReadFileTool(BaseTool):
 
     def invoke(self, **kwargs) -> Dict[str, Any]:
         """执行工具，读取文件。"""
+        # 可选：获取 session 上下文
+        session = get_session()
+        if session:
+            # 可访问 session.messages, session._metadata 等
+            history_count = session.get_history_count()
+            metadata = session._metadata
+
         file_path = kwargs.get('file_path')
 
         if not file_path:

@@ -3,10 +3,8 @@
 本模块仅导出 Module 类定义，实际的 Injector 实例化在 core/injector.py 中。
 """
 from typing import Any, Type, TypeVar
-from injector import Module, singleton
-from injector import Binder
 from sqlalchemy.orm import Session
-
+from src.core.message_store import IMessageStore
 from .datasource import DatabaseManager, get_session_local
 from .test import Test, TestService, TestDao
 from .tools import Tool, ToolService, ToolDao
@@ -16,11 +14,11 @@ from .conversations import (
     ConversationDao,
     MessageDao,
     ConversationService,
-    MessageService
+    MessageService,
+    MessageStoreImpl
 )
 
-from injector import Injector, Module, singleton
-T = TypeVar("T")
+from injector import Injector, Module, singleton, Binder
 
 
 class DatabaseModule(Module):
@@ -116,41 +114,17 @@ class MessageModule(Module):
             scope=singleton
         )
 
-# 创建全局 Injector 实例
-injector: Injector = Injector([
-    DatabaseModule(),
-    TestModule(),
-    ToolModule(),
-    ConversationModule(),
-    MessageModule(),
-])
 
-
-def reload_modules() -> None:
-    """重新加载模块（用于测试或动态添加模块）"""
-    global injector
-    injector = Injector([
-        DatabaseModule(),
-        TestModule(),
-        ToolModule(),
-        ConversationModule(),
-        MessageModule(),
-    ])
-
-
-def get_service(service_class: Type[T]) -> T:
-    """从 Injector 获取服务实例。
+def get_message_store(conversation_id: str) -> IMessageStore:
+    """获取 MessageStoreImpl 实例（非单例，每次创建新实例）。
 
     Args:
-        service_class: 服务类类型
+        conversation_id: 对话 ID
 
     Returns:
-        服务实例
-
-    Example:
-        message_service = get_service(MessageService)
+        MessageStoreImpl 实例
     """
-    return injector.get(service_class)
+    return MessageStoreImpl(conversation_id)
 
 
 __all__ = [
@@ -171,5 +145,7 @@ __all__ = [
     "MessageDao",
     "ConversationService",
     "MessageService",
+    "MessageStoreImpl",
+    "get_message_store",
     "DatabaseManager"
 ]

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from src.modules import TestService, Test
-from src.modules import get_service
+from src.core import get_service
 
 router = APIRouter(prefix="/api/test", tags=["test"])
 
