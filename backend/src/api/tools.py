@@ -226,8 +226,14 @@ async def _execute_tool_stream(id: int, params: dict, user_info: dict = None) ->
         }, "start")
 
         try:
+            tool = registry.get("quickjs")
+            my_data = {"name": "Alice", "age": 30}
+            tool.expose_dict(my_data, "userData")
             # 使用异步方法执行工具
             result = await registry.aexecute("quickjs", code=script, tool_name=tool_data.name)
+
+            print(my_data)
+            tool.release_dict("userData")
 
             # 解析结果
             try:

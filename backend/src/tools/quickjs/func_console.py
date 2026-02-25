@@ -66,11 +66,36 @@ def apply(ctx, tool_name: str = None):
     ctx.add_callable("console_error", console_error)
 
     # 在 JS 中定义 console 对象，调用注册的函数
+    # 使用包装函数处理可能的 Proxy 对象，避免直接序列化导致的崩溃
     ctx.eval("""
         var console = {
-            log: function(...args) { return console_log(...args); },
-            warn: function(...args) { return console_warn(...args); },
-            error: function(...args) { return console_error(...args); }
+            log: function(...args) {
+                var processed = args.map(function(arg) {
+                    if (arg && arg._isProxy) {
+                        try { return JSON.stringify(arg); } catch(e) { return String(arg); }
+                    }
+                    return arg;
+                });
+                return console_log(...processed);
+            },
+            warn: function(...args) {
+                var processed = args.map(function(arg) {
+                    if (arg && arg._isProxy) {
+                        try { return JSON.stringify(arg); } catch(e) { return String(arg); }
+                    }
+                    return arg;
+                });
+                return console_warn(...processed);
+            },
+            error: function(...args) {
+                var processed = args.map(function(arg) {
+                    if (arg && arg._isProxy) {
+                        try { return JSON.stringify(arg); } catch(e) { return String(arg); }
+                    }
+                    return arg;
+                });
+                return console_error(...processed);
+            }
         };
     """)
 
@@ -90,12 +115,21 @@ def _js_value_to_string(value):
         return value
     elif isinstance(value, quickjs.Object):
         try:
+            # 尝试调用 toJSON 方法将 Proxy 转换为普通对象
+            try:
+                to_json = value.get("toJSON")
+                if to_json:
+                    json_obj = to_json()
+                    return json.dumps(json_obj, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+
             json_str = value.json
             if callable(json_str):
                 json_str = json_str()
             # 格式化为 JSON 字符串
             return json.dumps(json.loads(json_str), ensure_ascii=False, indent=2)
         except Exception:
-            return f"[Object: {value}]"
+            return f"[Object]"
     else:
         return str(value)

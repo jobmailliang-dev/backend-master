@@ -91,15 +91,23 @@ class QuickJSTool(BaseTool):
             proxy.set(key, value)
         return None
 
-    def _js_dict_has(self, obj_id: str, key: str) -> bool:
-        """JS 端 has 检查回调。"""
-        proxy = self._proxy_manager.get(obj_id)
-        return proxy.has(key) if proxy else False
+    def _js_dict_has(self, obj_id: str, key: str) -> str:
+        """JS 端 has 检查回调。
 
-    def _js_dict_keys(self, obj_id: str) -> List[str]:
-        """JS 端 keys 获取回调。"""
+        返回字符串 "true"/"false" 以便 JS 端正确处理
+        """
         proxy = self._proxy_manager.get(obj_id)
-        return proxy.keys() if proxy else []
+        return "true" if (proxy.has(key) if proxy else False) else "false"
+
+    def _js_dict_keys(self, obj_id: str) -> str:
+        """JS 端 keys 获取回调。
+
+        返回 JSON 字符串，JS 端需要 JSON.parse 解析
+        """
+        import json as pyjson
+        proxy = self._proxy_manager.get(obj_id)
+        keys = proxy.keys() if proxy else []
+        return pyjson.dumps(keys)
 
     def _js_dict_delete(self, obj_id: str, key: str) -> bool:
         """JS 端 delete 操作回调。"""
@@ -182,13 +190,13 @@ class QuickJSTool(BaseTool):
                         return true;
                     }},
                     has: function(target, prop) {{
-                        return _dictHas(nestedObjId, prop);
+                        return _dictHas(nestedObjId, prop) === 'true';
                     }},
                     deleteProperty: function(target, prop) {{
                         return _dictDelete(nestedObjId, prop);
                     }},
                     ownKeys: function(target) {{
-                        return _dictKeys(nestedObjId);
+                        return JSON.parse(_dictKeys(nestedObjId));
                     }},
                     getOwnPropertyDescriptor: function(target, prop) {{
                         return {{
