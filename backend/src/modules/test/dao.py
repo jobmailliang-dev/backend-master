@@ -1,10 +1,13 @@
 """Test 数据访问对象模块 - SQLAlchemy 2.0 混合模式"""
 
-from typing import Optional, List
+from __future__ import annotations
+
+from typing import Optional, List, TYPE_CHECKING
 
 from injector import inject
-from sqlalchemy.orm import Session
 
+
+from sqlalchemy.orm import Session
 from .models import Test
 
 

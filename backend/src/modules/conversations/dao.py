@@ -1,10 +1,12 @@
 """对话和消息数据访问层 - SQLAlchemy 2.0 混合模式"""
 
-import json
-from typing import List, Optional
+from __future__ import annotations
+
+from typing import List, Optional, TYPE_CHECKING
 
 from injector import inject
 from sqlalchemy.orm import Session
+
 
 from .models import Conversation, Message
 
@@ -42,7 +44,7 @@ class ConversationDao:
         orm.preview = conversation.preview
         orm.update_time = conversation.update_time
         orm.message_count = conversation.message_count
-        orm.metadata = conversation.metadata
+        orm.meta_data = conversation.meta_data
         self._session.commit()
         return True
 

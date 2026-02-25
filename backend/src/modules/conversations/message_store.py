@@ -3,8 +3,7 @@
 from typing import Any, Dict, List
 
 from src.core.message_store import IMessageStore
-from src.modules.conversations import MessageService,ConversationDao
-from src.core.injector import get_service
+
 
 
 class MessageStoreImpl(IMessageStore):
@@ -19,9 +18,12 @@ class MessageStoreImpl(IMessageStore):
         Args:
             conversation_id: 对话 ID
         """
+        from src.modules.conversations import ConversationService, MessageService
+        from src.modules import get_service
+        
         self._conversation_id = conversation_id
         self._message_service: MessageService = get_service(MessageService)
-        self._conversation_dao = get_service(ConversationDao)
+        self._conversation_service = get_service(ConversationService)
 
     def load_messages(self) -> List[Dict[str, Any]]:
         """从数据库加载历史消息"""
@@ -48,7 +50,7 @@ class MessageStoreImpl(IMessageStore):
 
     def load_metadata(self) -> Dict[str, Any]:
         """从数据库加载对话元数据"""
-        conversation = self._conversation_dao.get_by_id(self._conversation_id)
+        conversation = self._conversation_service.get_one(self._conversation_id)
         if conversation:
-            return conversation.metadata
+            return conversation.meta_data
         return {}

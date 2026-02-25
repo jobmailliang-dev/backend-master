@@ -1,6 +1,6 @@
 """对话和消息数据传输对象（DTO）"""
 
-from typing import List
+from typing import Dict, List, Any
 from pydantic import BaseModel, Field
 
 
@@ -10,9 +10,10 @@ class ConversationDto(BaseModel):
     userId: str = Field(default="", description="用户ID")
     title: str = Field(default="新对话", description="对话标题")
     preview: str = Field(default="", description="最新消息预览")
-    createTime: int = Field(..., description="创建时间戳")
-    updateTime: int = Field(..., description="更新时间戳")
+    createTime: str = Field(default="", description="创建时间")
+    updateTime: str = Field(default="", description="更新时间")
     messageCount: int = Field(default=0, description="消息数量")
+    meta_data: Dict[str, Any] = Field(default_factory=dict, description="对话元数据")
 
     class Config:
         json_schema_extra = {
@@ -21,9 +22,10 @@ class ConversationDto(BaseModel):
                 "userId": "user_123",
                 "title": "新对话",
                 "preview": "你好",
-                "createTime": 1704067200000,
-                "updateTime": 1704067200000,
-                "messageCount": 2
+                "createTime": "2024-01-01 12:00:00",
+                "updateTime": "2024-01-01 12:00:00",
+                "messageCount": 2,
+                "meta_data": {}
             }
         }
 
@@ -39,7 +41,7 @@ class MessageDto(BaseModel):
     conversationId: str = Field(..., description="所属对话ID")
     role: str = Field(..., description="角色（user/assistant）")
     content: str = Field(..., description="消息内容")
-    timestamp: int = Field(..., description="时间戳")
+    timestamp: str = Field(default="", description="时间")
     tool_calls: list = Field(default_factory=list, description="工具调用列表")
 
     class Config:
@@ -49,7 +51,7 @@ class MessageDto(BaseModel):
                 "conversationId": "conv_abc123",
                 "role": "user",
                 "content": "你好",
-                "timestamp": 1704067200000,
+                "timestamp": "2024-01-01 12:00:00",
                 "tool_calls": []
             }
         }

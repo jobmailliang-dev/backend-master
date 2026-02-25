@@ -2,9 +2,10 @@
 
 import json
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import String, Text, Boolean, TIMESTAMP, func, ForeignKey, Integer
+from sqlalchemy import JSON, String, Text, Boolean, TIMESTAMP, func, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..datasource.database import Base
@@ -55,36 +56,22 @@ class Tool(Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    parameters_json: Mapped[str] = mapped_column(Text, default="[]")
+    parameters_json: Mapped[dict] = mapped_column(JSON, default=dict)
     inherit_from: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     code: Mapped[str] = mapped_column(Text, default="")
-    created_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
-    updated_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
 
-    @property
-    def parameters(self) -> List[ToolParameter]:
-        """获取参数列表"""
-        if not self.parameters_json:
-            return []
-        try:
-            params_data = json.loads(self.parameters_json)
-            return [ToolParameter.from_dict(p) for p in params_data]
-        except (json.JSONDecodeError, TypeError):
-            return []
-
-    @parameters.setter
-    def parameters(self, value: List[ToolParameter]):
-        self.parameters_json = json.dumps([p.to_dict() for p in value])
-
+    
     def to_dict(self) -> dict:
         return {
             "id": self.id,
             "name": self.name,
             "description": self.description,
             "is_active": self.is_active,
-            "parameters": [p.to_dict() for p in self.parameters],
+            "parameters": self.parameters_json,
             "inherit_from": self.inherit_from,
             "code": self.code,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
+            "updated_at": self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at else None,
         }

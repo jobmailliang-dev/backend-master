@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from src.api.models import ApiResponse
 from src.modules import ConversationService, MessageService
-from src.core.injector import get_service
+from src.modules import get_service
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 

@@ -18,10 +18,10 @@ from src.tools.base import BaseTool
 logger = get_logger(__name__)
 
 
-class IToolService(IService[ToolDto]):
+class IToolService(IService[ToolDto, int]):
     """工具服务接口
 
-    继承 IService[ToolDto]，约束返回数据类型为 ToolDto。
+    继承 IService[ToolDto, int]，约束返回数据类型为 ToolDto，ID 类型为 int。
     可扩展工具特有的方法签名。
     """
 

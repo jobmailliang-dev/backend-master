@@ -24,12 +24,17 @@ class ApiException(Exception):
 
 
 T = TypeVar("T")
+I = TypeVar("I")  # ID 类型泛型
 
 
-class IService(Generic[T]):
+class IService(Generic[T, I]):
     """Service 层泛型接口基类
 
     定义了 CRUD 操作的标准接口，所有业务 Service 应实现此接口。
+
+    Type Parameters:
+        T: DTO 类型
+        I: ID 字段类型
     """
 
     def get_list(self) -> List[T]:
@@ -40,7 +45,7 @@ class IService(Generic[T]):
         """
         raise NotImplementedError
 
-    def get_one(self, id: int) -> Optional[T]:
+    def get_one(self, id: I) -> Optional[T]:
         """根据 ID 获取单个 DTO
 
         Args:
@@ -62,7 +67,7 @@ class IService(Generic[T]):
         """
         raise NotImplementedError
 
-    def update(self, id: int, data: dict) -> Optional[T]:
+    def update(self, id: I, data: dict) -> Optional[T]:
         """更新实体
 
         Args:
@@ -74,7 +79,7 @@ class IService(Generic[T]):
         """
         raise NotImplementedError
 
-    def delete_by_id(self, id: int) -> bool:
+    def delete_by_id(self, id: I) -> bool:
         """删除实体
 
         Args:

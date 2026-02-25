@@ -2,7 +2,7 @@
 
 本模块仅导出 Module 类定义，实际的 Injector 实例化在 core/injector.py 中。
 """
-
+from typing import Any, Type, TypeVar
 from injector import Module, singleton
 from injector import Binder
 from sqlalchemy.orm import Session
@@ -18,6 +18,9 @@ from .conversations import (
     ConversationService,
     MessageService
 )
+
+from injector import Injector, Module, singleton
+T = TypeVar("T")
 
 
 class DatabaseModule(Module):
@@ -112,6 +115,42 @@ class MessageModule(Module):
             MessageService,
             scope=singleton
         )
+
+# 创建全局 Injector 实例
+injector: Injector = Injector([
+    DatabaseModule(),
+    TestModule(),
+    ToolModule(),
+    ConversationModule(),
+    MessageModule(),
+])
+
+
+def reload_modules() -> None:
+    """重新加载模块（用于测试或动态添加模块）"""
+    global injector
+    injector = Injector([
+        DatabaseModule(),
+        TestModule(),
+        ToolModule(),
+        ConversationModule(),
+        MessageModule(),
+    ])
+
+
+def get_service(service_class: Type[T]) -> T:
+    """从 Injector 获取服务实例。
+
+    Args:
+        service_class: 服务类类型
+
+    Returns:
+        服务实例
+
+    Example:
+        message_service = get_service(MessageService)
+    """
+    return injector.get(service_class)
 
 
 __all__ = [

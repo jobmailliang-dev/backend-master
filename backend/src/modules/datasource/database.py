@@ -1,10 +1,13 @@
 """数据库连接管理模块 - SQLAlchemy 2.0 版本"""
 
 import os
+from typing import TYPE_CHECKING
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase, Mapped, mapped_column
 
+
+from sqlalchemy.orm import Session
 
 class Base(DeclarativeBase):
     """SQLAlchemy 2.0 Declarative Base"""

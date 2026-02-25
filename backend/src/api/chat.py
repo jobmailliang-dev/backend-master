@@ -10,7 +10,6 @@ from src.cli.output import EVENT_DONE, EVENT_ERROR
 from src.utils.stream_writer_util import create_queue_task, send_queue
 from src.modules import MessageService
 from src.modules.conversations import MessageStoreImpl
-from src.core.injector import get_service
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 

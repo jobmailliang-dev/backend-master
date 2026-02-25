@@ -5,6 +5,7 @@
 
 import time
 import uuid
+from datetime import datetime
 from typing import List, Optional
 from injector import inject
 from .models import Conversation, Message
@@ -29,7 +30,7 @@ def generate_message_id() -> str:
     return f"msg_{now_str}_{rand}"
 
 
-class IConversationService(IService[ConversationDto]):
+class IConversationService(IService[ConversationDto, str]):
     """对话服务接口"""
 
     def get_by_id(self, conversation_id: str) -> Optional[ConversationDto]:
@@ -53,7 +54,7 @@ class IConversationService(IService[ConversationDto]):
         ...
 
 
-class IMessageService(IService[MessageDto]):
+class IMessageService(IService[MessageDto, str]):
     """消息服务接口"""
 
     def get_by_conversation_id(self, conversation_id: str) -> List[MessageDto]:
@@ -79,9 +80,9 @@ class ConversationService(IConversationService):
         """获取所有对话"""
         return [self.convert_dto(conv) for conv in self._dao.get_all(user_id)]
 
-    def get_one(self, conversation_id: int) -> Optional[ConversationDto]:
-        """获取单个对话（接口兼容）"""
-        return self.get_by_id(str(conversation_id))
+    def get_one(self, id: str) -> Optional[ConversationDto]:
+        """获取单个对话"""
+        return self.get_by_id(id)
 
     def get_by_id(self, conversation_id: str) -> Optional[ConversationDto]:
         """根据ID获取对话"""
@@ -100,7 +101,7 @@ class ConversationService(IConversationService):
             elif data.get("userId"):
                 user_id = data["userId"]
 
-        now = int(time.time() * 1000)
+        now = datetime.now()
         conversation = Conversation(
             id=generate_id(),
             user_id=user_id,
@@ -117,9 +118,9 @@ class ConversationService(IConversationService):
         """创建对话（兼容接口）"""
         return self.create_one({"title": title})
 
-    def update(self, conversation_id: int, data: dict) -> Optional[Conversation]:
-        """更新对话（接口兼容）"""
-        return self.update_by_id(str(conversation_id), data)
+    def update(self, conversation_id: str, data: dict) -> Optional[Conversation]:
+        """更新对话"""
+        return self.update_by_id(conversation_id, data)
 
     def update_by_id(self, conversation_id: str, data: dict) -> Optional[Conversation]:
         """根据ID更新对话"""
@@ -134,7 +135,7 @@ class ConversationService(IConversationService):
         if "messageCount" in data:
             conv.message_count = data["messageCount"]
 
-        conv.update_time = int(time.time() * 1000)
+        conv.update_time = datetime.now()
         self._dao.update(conv)
         return conv
 
@@ -148,9 +149,9 @@ class ConversationService(IConversationService):
         conv = self.update_by_id(conversation_id, {"preview": preview})
         return self.convert_dto(conv) if conv else None
 
-    def delete_by_id(self, conversation_id: int) -> bool:
-        """删除对话（接口兼容）"""
-        return self.delete_by_str_id(str(conversation_id))
+    def delete_by_id(self, conversation_id: str) -> bool:
+        """删除对话"""
+        return self.delete_by_str_id(conversation_id)
 
     def delete_by_str_id(self, conversation_id: str) -> bool:
         """根据ID删除对话"""
@@ -172,7 +173,8 @@ class ConversationService(IConversationService):
             preview=data.get("preview", ""),
             createTime=data.get("createTime", data.get("create_time", 0)),
             updateTime=data.get("updateTime", data.get("update_time", 0)),
-            messageCount=data.get("messageCount", data.get("message_count", 0))
+            messageCount=data.get("messageCount", data.get("message_count", 0)),
+            meta_data=data.get("meta_data", {})
         )
 
 
@@ -188,8 +190,8 @@ class MessageService(IMessageService):
         """获取所有消息（接口兼容）"""
         return []
 
-    def get_one(self, message_id: int) -> Optional[MessageDto]:
-        """获取单个消息（接口兼容）"""
+    def get_one(self, message_id: str) -> Optional[MessageDto]:
+        """获取单个消息"""
         return None
 
     def get_by_conversation_id(self, conversation_id: str) -> List[MessageDto]:
@@ -212,7 +214,7 @@ class MessageService(IMessageService):
         self, conversation_id: str, role: str, content: str, tool_calls: list = None
     ) -> MessageDto:
         """创建消息并更新对话"""
-        now = int(time.time() * 1000)
+        now = datetime.now()
 
         message = Message(
             id=generate_message_id(),
@@ -239,17 +241,17 @@ class MessageService(IMessageService):
                 create_time=conv.create_time,
                 update_time=now,
                 message_count=message_count,
-                metadata = conv.metadata
+                meta_data=conv.meta_data
             ))
 
         return self.convert_dto(message)
 
-    def update(self, message_id: int, data: dict) -> Optional[Message]:
-        """更新消息（接口兼容）"""
+    def update(self, message_id: str, data: dict) -> Optional[Message]:
+        """更新消息"""
         return None
 
-    def delete_by_id(self, message_id: int) -> bool:
-        """删除消息（接口兼容）"""
+    def delete_by_id(self, message_id: str) -> bool:
+        """删除消息"""
         return False
 
     def convert_dto(self, entity) -> MessageDto:

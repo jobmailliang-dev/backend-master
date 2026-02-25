@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from src.api.models import ApiResponse
 from src.modules import ToolService
-from src.core.injector import get_service
+from src.modules import get_service
 from src.modules.base import ValidException, ApiException
 from src.modules.tools.dtos import ToolDto
 from src.utils.logger import get_logger
@@ -23,8 +23,6 @@ router = APIRouter(prefix="/api/tools", tags=["tools"])
 # 获取日志器
 _logger = get_logger(__name__)
 
-# 获取 ToolService 实例
-_tool_service: ToolService = get_service(ToolService)
 
 
 def _check_tool_name(name: str) -> None:
@@ -47,13 +45,14 @@ async def get_tools(id: int = Query(default=None, description="Tool ID (optional
     - 无 id 参数时返回所有工具列表
     - 有 id 参数时返回单个工具
     """
+    _service = get_service(ToolService)
     if id is not None:
         # 获取单个工具
-        tool: ToolDto = _tool_service.get_one(id)
+        tool: ToolDto = _service.get_one(id)
         return ApiResponse.ok(tool)
 
     # 获取所有工具
-    tools: list[ToolDto] = _tool_service.get_list()
+    tools: list[ToolDto] = _service.get_list()
     return ApiResponse.ok(tools)
 
 
@@ -65,7 +64,7 @@ async def create_tool(request: dict):
     if tool_name:
         _check_tool_name(tool_name)
 
-    data = _tool_service.create_one(request)
+    data = get_service(ToolService).create_one(request)
     _logger.info(f"[tool_create] id={data.id if data else None}")
     return ApiResponse.ok(data)
 
@@ -79,7 +78,7 @@ async def update_tool(id: int = Query(..., description="Tool ID"), request: dict
     if tool_name:
         _check_tool_name(tool_name)
 
-    data = _tool_service.update(id, request or {})
+    data = get_service(ToolService).update(id, request or {})
     _logger.info(f"[tool_update] id={id}")
     return ApiResponse.ok(data)
 
@@ -88,7 +87,7 @@ async def update_tool(id: int = Query(..., description="Tool ID"), request: dict
 @router.delete("")
 async def delete_tool(id: int = Query(..., description="Tool ID")):
     """删除工具"""
-    success = _tool_service.delete_by_id(id)
+    success = get_service(ToolService).delete_by_id(id)
     return ApiResponse.ok(success)
 
 
@@ -96,14 +95,14 @@ async def delete_tool(id: int = Query(..., description="Tool ID")):
 async def import_tools(request: dict):
     """批量导入工具"""
     tools = request.get("tools", [])
-    data = _tool_service.import_tools(tools)
+    data = get_service(ToolService).import_tools(tools)
     return ApiResponse.ok(data)
 
 
 @router.get("/export")
 async def export_tools():
     """导出所有工具"""
-    tools: list[ToolDto] = _tool_service.export_tools()
+    tools: list[ToolDto] = get_service(ToolService).export_tools()
     return ApiResponse.ok(tools)
 
 
@@ -111,7 +110,7 @@ async def export_tools():
 async def get_inheritable_tools():
     """获取可继承的工具列表"""
     from src.modules.tools.dtos import ToolInheritableDto
-    tools: list[ToolInheritableDto] = _tool_service.get_inheritable_tools()
+    tools: list[ToolInheritableDto] = get_service(ToolService).get_inheritable_tools()
     return ApiResponse.ok(tools)
 
 
@@ -122,7 +121,7 @@ async def toggle_tool_active(
 ):
     """切换工具启用状态"""
     is_active = request.get("is_active", True) if request else True
-    data = _tool_service.toggle_active(id, is_active)
+    data = get_service(ToolService).toggle_active(id, is_active)
     return ApiResponse.ok(data)
 
 
@@ -138,7 +137,7 @@ async def execute_tool(
     user_info = request.get("user_info", {}) if request else {}
 
     # 1. 调用 service.get_one 获取工具定义
-    tool_data: ToolDto = _tool_service.get_one(id)
+    tool_data: ToolDto = get_service(ToolService).get_one(id)
     if not tool_data:
         raise ValidException("tool is not found")
 
@@ -187,7 +186,7 @@ async def _execute_tool_stream(id: int, params: dict, user_info: dict = None) ->
 
     try:
         # 1. 获取工具定义
-        tool_data: ToolDto = _tool_service.get_one(id)
+        tool_data: ToolDto = get_service(ToolService).get_one(id)
         if not tool_data:
             send_queue({
                 "type": "error",
