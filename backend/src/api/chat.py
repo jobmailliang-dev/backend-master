@@ -67,8 +67,7 @@ async def _run_chat_stream(message: str, conversation_id: Optional[str] = None) 
         # 创建消息存储实现（每次创建新实例）
         message_store: Optional[IMessageStore] = None
         if conversation_id:
-            msg_service = get_service(MessageService)
-            message_store = MessageStoreImpl(msg_service, conversation_id)
+            message_store = MessageStoreImpl(conversation_id)
 
         # 创建客户端，传入 message_store
         client = create_client(message_store=message_store)

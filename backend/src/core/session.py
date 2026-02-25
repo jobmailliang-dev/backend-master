@@ -54,7 +54,19 @@ class SessionManager:
         self._metadata = metadata or {}
         self._message_store = message_store
         self.load_from_store()
+        self._merge_metadata()
         self._init_system_message()
+
+    def _merge_metadata(self) -> None:
+        """从消息存储加载并合并元数据。
+
+        数据库中的 metadata 会混入到传入的 metadata 中，
+        如果有重复的 key，则数据库的值会覆盖传入的值。
+        """
+        if self._message_store is not None:
+            db_metadata = self._message_store.load_metadata()
+            # 使用数据库的 metadata 覆盖传入的 metadata
+            self._metadata.update(db_metadata)
 
 
     def _init_system_message(self) -> None:

@@ -1,8 +1,10 @@
 """对话和消息业务实体模块"""
 
+import json
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
-import sqlite3
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.orm import Session
 
 
 @dataclass
@@ -15,6 +17,7 @@ class Conversation:
     create_time: int = 0
     update_time: int = 0
     message_count: int = 0
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -25,12 +28,42 @@ class Conversation:
             "preview": self.preview,
             "createTime": self.create_time,
             "updateTime": self.update_time,
-            "messageCount": self.message_count
+            "messageCount": self.message_count,
+            "metadata": self.metadata
         }
 
     @classmethod
-    def from_row(cls, row: sqlite3.Row) -> "Conversation":
+    def from_orm(cls, orm_obj) -> "Conversation":
+        """从 ORM 对象创建实体"""
+        if orm_obj is None:
+            return None
+        metadata = {}
+        if orm_obj.metadata:
+            try:
+                metadata = json.loads(orm_obj.metadata)
+            except (json.JSONDecodeError, TypeError):
+                metadata = {}
+        return cls(
+            id=orm_obj.id,
+            user_id=orm_obj.user_id or "",
+            title=orm_obj.title or "新对话",
+            preview=orm_obj.preview or "",
+            create_time=orm_obj.create_time,
+            update_time=orm_obj.update_time,
+            message_count=orm_obj.message_count or 0,
+            metadata=metadata
+        )
+
+    # 兼容旧版 sqlite3.Row
+    @classmethod
+    def from_row(cls, row) -> "Conversation":
         """从数据库行创建实体"""
+        metadata = {}
+        if row["metadata"]:
+            try:
+                metadata = json.loads(row["metadata"])
+            except (json.JSONDecodeError, TypeError):
+                metadata = {}
         return cls(
             id=row["id"],
             user_id=row["user_id"],
@@ -38,7 +71,8 @@ class Conversation:
             preview=row["preview"] or "",
             create_time=row["create_time"],
             update_time=row["update_time"],
-            message_count=row["message_count"] or 0
+            message_count=row["message_count"] or 0,
+            metadata=metadata
         )
 
 
@@ -64,9 +98,29 @@ class Message:
         }
 
     @classmethod
-    def from_row(cls, row: sqlite3.Row) -> "Message":
+    def from_orm(cls, orm_obj) -> "Message":
+        """从 ORM 对象创建实体"""
+        if orm_obj is None:
+            return None
+        tool_calls = []
+        if orm_obj.tool_calls:
+            try:
+                tool_calls = json.loads(orm_obj.tool_calls)
+            except (json.JSONDecodeError, TypeError):
+                tool_calls = []
+        return cls(
+            id=orm_obj.id,
+            conversation_id=orm_obj.conversation_id,
+            role=orm_obj.role,
+            content=orm_obj.content,
+            timestamp=orm_obj.timestamp,
+            tool_calls=tool_calls
+        )
+
+    # 兼容旧版 sqlite3.Row
+    @classmethod
+    def from_row(cls, row) -> "Message":
         """从数据库行创建实体"""
-        import json
         tool_calls = []
         if row["tool_calls"]:
             try:

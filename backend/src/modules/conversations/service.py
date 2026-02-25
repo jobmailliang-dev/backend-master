@@ -238,7 +238,8 @@ class MessageService(IMessageService):
                 preview=preview,
                 create_time=conv.create_time,
                 update_time=now,
-                message_count=message_count
+                message_count=message_count,
+                metadata = conv.metadata
             ))
 
         return self.convert_dto(message)

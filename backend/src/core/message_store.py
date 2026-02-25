@@ -32,3 +32,11 @@ class IMessageStore(Protocol):
             **kwargs: 额外参数 (如 tool_call_id)
         """
         ...
+
+    def load_metadata(self) -> Dict[str, Any]:
+        """加载对话元数据
+
+        Returns:
+            元数据字典
+        """
+        ...
