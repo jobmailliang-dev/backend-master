@@ -1,12 +1,13 @@
 
 """动态工具类 - 从数据库加载的工具"""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from src.tools.base import BaseTool
 from src.modules.tools.models import Tool
 from src.tools.quickjs.quickjs_tool import QuickJSTool
 from src.utils.script_wrapper import wrap_javascript_code
+from src.core.session_context import get_session
 
 
 class DynamicTool(BaseTool):
@@ -33,7 +34,6 @@ class DynamicTool(BaseTool):
         properties = {}
         required = []
         for p in params:
-            print(f"111111111={p}")
             prop: Dict[str, Any] = {
                 "type": p.type,
                 "description": p.description
@@ -65,10 +65,17 @@ class DynamicTool(BaseTool):
         Returns:
             执行结果字典
         """
+        # 从 session 获取 metadata
+        metadata: Optional[Dict[str, Any]] = None
+        session = get_session()
+        if session:
+            metadata = session._metadata
+
         # 包装 JavaScript 脚本
         script = wrap_javascript_code(
             self._tool.code,
             kwargs,
+            metadata=metadata,
             inherit_from=self._tool.inherit_from
         )
         # 创建新的 QuickJSTool 实例，避免线程安全问题
@@ -86,10 +93,17 @@ class DynamicTool(BaseTool):
         Returns:
             执行结果字典
         """
+        # 从 session 获取 metadata
+        metadata: Optional[Dict[str, Any]] = None
+        session = get_session()
+        if session:
+            metadata = session._metadata
+
         # 包装 JavaScript 脚本
         script = wrap_javascript_code(
             self._tool.code,
             kwargs,
+            metadata=metadata,
             inherit_from=self._tool.inherit_from
         )
 

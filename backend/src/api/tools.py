@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from src.api.models import ApiResponse
 from src.modules import ToolService
-from src.core import get_service
+from src.core import get_app_config, get_service
 from src.modules.base import ValidException, ApiException
 from src.modules.tools.dtos import ToolDto
 from src.utils.logger import get_logger
@@ -134,7 +134,6 @@ async def execute_tool(
     from src.tools.registry import get_registry
 
     params = request.get("params", {}) if request else {}
-    user_info = request.get("user_info", {}) if request else {}
 
     # 1. 调用 service.get_one 获取工具定义
     tool_data: ToolDto = get_service(ToolService).get_one(id)
@@ -145,8 +144,10 @@ async def execute_tool(
     if not tool_data.is_active:
         raise ValidException("tool is not active")
 
+    config = get_app_config()
+    metadata = config.get_system_metadata_dict()
     # 2. 组装 JavaScript 脚本
-    script = wrap_javascript_code(tool_data.code, params, user_info, tool_data.inherit_from)
+    script = wrap_javascript_code(tool_data.code, params, metadata, tool_data.inherit_from)
 
     # 3. 调用 quickjs_tool 执行拼接的脚本
     registry = get_registry()
@@ -207,8 +208,10 @@ async def _execute_tool_stream(id: int, params: dict, user_info: dict = None) ->
             "tool_name": tool_data.name
         }, "status")
 
+        config = get_app_config()
+        metadata = config.get_system_metadata_dict()
         # 2. 组装 JavaScript 脚本
-        script = wrap_javascript_code(tool_data.code, params, user_info, tool_data.inherit_from)
+        script = wrap_javascript_code(tool_data.code, params, metadata, tool_data.inherit_from)
 
         # 3. 调用 quickjs_tool 执行脚本
         registry = get_registry()
