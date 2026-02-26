@@ -1,6 +1,9 @@
 """JavaScript 脚本包装工具"""
 
+import json
 from typing import Optional, Tuple
+
+from sqlalchemy import DateTime
 
 
 def wrap_javascript_code(code: str, params: dict, metadata: dict = None, inherit_from: Optional[str] = None) -> Tuple[dict, str]:

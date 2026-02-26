@@ -25,9 +25,13 @@ class MessageStoreImpl(IMessageStore):
         self._message_service: MessageService = get_service(MessageService)
         self._conversation_service = get_service(ConversationService)
 
+    # 大模型需要的角色类型
+    VALID_ROLES = ("user", "assistant", "tool")
+
     def load_messages(self) -> List[Dict[str, Any]]:
         """从数据库加载历史消息"""
         messages = self._message_service.get_by_conversation_id(self._conversation_id)
+        # 过滤只保留大模型需要的角色类型
         return [
             {
                 "role": msg.role,
@@ -35,6 +39,7 @@ class MessageStoreImpl(IMessageStore):
                 "tool_calls": msg.tool_calls,
             }
             for msg in messages
+            if msg.role in self.VALID_ROLES
         ]
 
     def save_message(

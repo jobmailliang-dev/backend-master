@@ -4,6 +4,7 @@
 """
 
 import asyncio
+import json
 import json as pyjson
 from typing import Any, Dict, List, Optional
 
@@ -61,27 +62,26 @@ class QuickJSTool(BaseTool):
         value = proxy.get(key)
         # 如果返回的是 DictProxy，需要将其注册到 manager 中
         if isinstance(value, DictProxy):
-            # 检查是否已经注册，如果没有则注册
+            # 直接使用原有的 DictProxy 对象注册到 manager
             if not self._proxy_manager.get(value.obj_id):
-                # 创建新的代理数据包装并注册
-                nested_data = value.to_dict()
-                # 使用相同的 obj_id 注册
-                self._proxy_manager._proxies[value.obj_id] = DictProxy(nested_data, value.obj_id)
+                self._proxy_manager._proxies[value.obj_id] = value
             # 返回特殊标记格式
             return f"__PROXY:{value.obj_id}__"
         if isinstance(value, list):
             # 列表中的嵌套 dict 需要特殊处理
+            # 注意：由于 quickjs add_callable 无法直接返回 JS 数组，
+            # 我们返回 JSON 字符串，JS 端需要解析
+            import json as pyjson
             result = []
             for item in value:
                 if isinstance(item, DictProxy):
-                    # 检查是否已经注册
+                    # 直接使用原有的 DictProxy 对象
                     if not self._proxy_manager.get(item.obj_id):
-                        nested_data = item.to_dict()
-                        self._proxy_manager._proxies[item.obj_id] = DictProxy(nested_data, item.obj_id)
-                    result.append(f"__PROXY:{item.obj_id}__")
+                        self._proxy_manager._proxies[item.obj_id] = item
+                    result.append({"__proxy": item.obj_id})
                 else:
                     result.append(item)
-            return result
+            return pyjson.dumps(result)
         return value
 
     def _js_dict_set(self, obj_id: str, key: str, value: Any) -> None:
@@ -167,21 +167,23 @@ class QuickJSTool(BaseTool):
                     get: function(target, prop) {{
                         if (prop === '__objId__') return nestedObjId;
                         if (prop === '_isProxy') return true;
-                        const result = _dictGet(nestedObjId, prop);
+                        let result = _dictGet(nestedObjId, prop);
+                        // 检查是否返回的是 JSON 字符串（数组情况）
+                        if (typeof result === 'string' && result.startsWith('[')) {{
+                            try {{
+                                const arr = JSON.parse(result);
+                                return arr.map(function(item) {{
+                                    if (item && item.__proxy) {{
+                                        return createProxy(item.__proxy);
+                                    }}
+                                    return item;
+                                }});
+                            }} catch(e) {{ return result; }}
+                        }}
                         // 检查是否是嵌套代理标记
                         if (typeof result === 'string' && result.startsWith('__PROXY:')) {{
                             const nestedId = result.slice(8, -2);
                             return createProxy(nestedId);
-                        }}
-                        // 检查数组中的嵌套代理
-                        if (Array.isArray(result)) {{
-                            return result.map(function(item) {{
-                                if (typeof item === 'string' && item.startsWith('__PROXY:')) {{
-                                    const nestedId = item.slice(8, -2);
-                                    return createProxy(nestedId);
-                                }}
-                                return item;
-                            }});
                         }}
                         return result;
                     }},

@@ -23,6 +23,8 @@ class DictProxy:
         """
         self._data = data
         self._obj_id = obj_id or f"dict_{id(data)}"
+        # 缓存子代理，避免重复创建
+        self._children_cache: dict = {}
 
     def get(self, key: str) -> Any:
         """获取属性值。
@@ -34,7 +36,14 @@ class DictProxy:
             属性值，如果是 dict 会递归包装为 DictProxy
         """
         value = self._data.get(key)
-        return self._wrap_value(value)
+        # 使用 id(value) 作为缓存键，确保同一对象返回相同代理
+        cache_key = id(value) if isinstance(value, (dict, list)) else key
+        if cache_key in self._children_cache:
+            return self._children_cache[cache_key]
+        result = self._wrap_value(value)
+        if cache_key != key:
+            self._children_cache[cache_key] = result
+        return result
 
     def set(self, key: str, value: Any) -> None:
         """设置属性值。
