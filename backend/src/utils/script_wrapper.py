@@ -1,10 +1,9 @@
 """JavaScript 脚本包装工具"""
 
-import json
-from typing import Optional
+from typing import Optional, Tuple
 
 
-def wrap_javascript_code(code: str, params: dict, metadata: dict = None, inherit_from: Optional[str] = None) -> str:
+def wrap_javascript_code(code: str, params: dict, metadata: dict = None, inherit_from: Optional[str] = None) -> Tuple[dict, str]:
     """将工具代码包装为可执行的 JavaScript 脚本。
 
     Args:
@@ -14,39 +13,43 @@ def wrap_javascript_code(code: str, params: dict, metadata: dict = None, inherit
         inherit_from: 继承自的工具名称
 
     Returns:
-        包装后的可执行 JavaScript 脚本
+        tuple: (context_dict, wrapped_script)
+            - context_dict: 包含 args, metadata, inherit_from 的字典，可作为 JS 绑定参数
+            - wrapped_script: 包装后的 JavaScript 脚本（不含 context 声明）
     """
-    # 构建 context 对象
-    context_parts = [f"args: {json.dumps(params, ensure_ascii=False)}"]
+    # 构建 context 字典
+    context = {"args": params}
 
     # 添加 metadata
     if metadata:
-        metadata_json = json.dumps(metadata, ensure_ascii=False)
-        context_parts.append(f"metadata: {metadata_json}")
+        context["metadata"] = metadata
 
-    # 如果存在 inherit_from，获取继承工具信息并生成 callTool 脚本
-    data_script = ""
+    # 如果存在 inherit_from，添加到 context
     if inherit_from:
-        # 生成调用继承工具的脚本，直接使用 params 的值
-        params_json = json.dumps(params, ensure_ascii=False)
-        data_script = f'const data = callTool("{inherit_from}", {params_json});'
+        context["inherit_from"] = inherit_from
 
-    if data_script:
-        context_parts.append(f"data: (() => {{ {data_script} return data; }})()")
-
-    context_str = "const context = {\n  " + ",\n  ".join(context_parts) + "\n};"
+    # 构建 callSuper 函数（如果存在 inherit_from）
+    call_super_func = ""
+    if inherit_from:
+        call_super_func = '''
+function callSuper() {
+    return callTool(context.inherit_from, context.args);
+}
+'''
 
     # 检查 code 是否包含 function execute
     if "function execute" in code:
         # 包含 execute 函数，包装执行
-        return f"""
-{context_str}
+        wrapped_script = f"""
+{call_super_func}
 {code}
-return execute(context);
+return execute(context)
 """
     else:
         # 不包含 function execute，直接使用 code 作为脚本
-        return f"""
-{context_str}
+        wrapped_script = f"""
+{call_super_func}
 {code}
 """
+
+    return context, wrapped_script

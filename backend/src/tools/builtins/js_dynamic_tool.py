@@ -71,8 +71,8 @@ class DynamicTool(BaseTool):
         if session:
             metadata = session._metadata
 
-        # 包装 JavaScript 脚本
-        script = wrap_javascript_code(
+        # 包装 JavaScript 脚本，获取 context 和 script
+        context, script = wrap_javascript_code(
             self._tool.code,
             kwargs,
             metadata=metadata,
@@ -81,12 +81,8 @@ class DynamicTool(BaseTool):
         # 创建新的 QuickJSTool 实例，避免线程安全问题
         tool = QuickJSTool()
 
-        tool.expose_dict(metadata, "metadata")
-
-
-        result = tool.invoke(code=script, tool_name=self._tool.name)
-
-        tool.release_dict("metadata")
+        # 将 context 传给 quickjs 工具，内部会自动暴露和释放
+        result = tool.invoke(code=script, tool_name=self._tool.name, context=context)
 
         # 直接返回结果
         return result["result"]
@@ -106,8 +102,8 @@ class DynamicTool(BaseTool):
         if session:
             metadata = session._metadata
 
-        # 包装 JavaScript 脚本
-        script = wrap_javascript_code(
+        # 包装 JavaScript 脚本，获取 context 和 script
+        context, script = wrap_javascript_code(
             self._tool.code,
             kwargs,
             metadata=metadata,
@@ -116,7 +112,8 @@ class DynamicTool(BaseTool):
 
         # 创建新的 QuickJSTool 实例，避免线程安全问题
         tool = QuickJSTool()
-        result = await tool.ainvoke(code=script, tool_name=self._tool.name)
+        # 将 context 传给 quickjs 工具，内部会自动暴露和释放
+        result = await tool.ainvoke(code=script, tool_name=self._tool.name, context=context)
 
         # 直接返回结果
         return result["result"]

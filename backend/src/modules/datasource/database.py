@@ -88,7 +88,6 @@ class DatabaseManager:
     def drop_all_tables(self):
         """删除所有表"""
         Base.metadata.drop_all(bind=self._engine)
-
     def init_database(self):
         """初始化数据库表（仅执行一次）"""
         if self._initialized:

@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/tools", tags=["tools"])
 
 # 获取日志器
 _logger = get_logger(__name__)
-
+_service = get_service(ToolService)
 
 
 def _check_tool_name(name: str) -> None:
@@ -45,7 +45,7 @@ async def get_tools(id: int = Query(default=None, description="Tool ID (optional
     - 无 id 参数时返回所有工具列表
     - 有 id 参数时返回单个工具
     """
-    _service = get_service(ToolService)
+    
     if id is not None:
         # 获取单个工具
         tool: ToolDto = _service.get_one(id)
@@ -64,7 +64,7 @@ async def create_tool(request: dict):
     if tool_name:
         _check_tool_name(tool_name)
 
-    data = get_service(ToolService).create_one(request)
+    data = _service.create_one(request)
     _logger.info(f"[tool_create] id={data.id if data else None}")
     return ApiResponse.ok(data)
 
@@ -78,7 +78,7 @@ async def update_tool(id: int = Query(..., description="Tool ID"), request: dict
     if tool_name:
         _check_tool_name(tool_name)
 
-    data = get_service(ToolService).update(id, request or {})
+    data = _service.update(id, request or {})
     _logger.info(f"[tool_update] id={id}")
     return ApiResponse.ok(data)
 
@@ -87,7 +87,7 @@ async def update_tool(id: int = Query(..., description="Tool ID"), request: dict
 @router.delete("")
 async def delete_tool(id: int = Query(..., description="Tool ID")):
     """删除工具"""
-    success = get_service(ToolService).delete_by_id(id)
+    success = _service.delete_by_id(id)
     return ApiResponse.ok(success)
 
 
@@ -95,14 +95,14 @@ async def delete_tool(id: int = Query(..., description="Tool ID")):
 async def import_tools(request: dict):
     """批量导入工具"""
     tools = request.get("tools", [])
-    data = get_service(ToolService).import_tools(tools)
+    data = _service.import_tools(tools)
     return ApiResponse.ok(data)
 
 
 @router.get("/export")
 async def export_tools():
     """导出所有工具"""
-    tools: list[ToolDto] = get_service(ToolService).export_tools()
+    tools: list[ToolDto] = _service.export_tools()
     return ApiResponse.ok(tools)
 
 
@@ -110,7 +110,7 @@ async def export_tools():
 async def get_inheritable_tools():
     """获取可继承的工具列表"""
     from src.modules.tools.dtos import ToolInheritableDto
-    tools: list[ToolInheritableDto] = get_service(ToolService).get_inheritable_tools()
+    tools: list[ToolInheritableDto] = _service.get_inheritable_tools()
     return ApiResponse.ok(tools)
 
 
@@ -121,7 +121,7 @@ async def toggle_tool_active(
 ):
     """切换工具启用状态"""
     is_active = request.get("is_active", True) if request else True
-    data = get_service(ToolService).toggle_active(id, is_active)
+    data = _service.toggle_active(id, is_active)
     return ApiResponse.ok(data)
 
 
@@ -136,7 +136,7 @@ async def execute_tool(
     params = request.get("params", {}) if request else {}
 
     # 1. 调用 service.get_one 获取工具定义
-    tool_data: ToolDto = get_service(ToolService).get_one(id)
+    tool_data: ToolDto = _service.get_one(id)
     if not tool_data:
         raise ValidException("tool is not found")
 
@@ -147,7 +147,7 @@ async def execute_tool(
     config = get_app_config()
     metadata = config.get_system_metadata_dict()
     # 2. 组装 JavaScript 脚本
-    script = wrap_javascript_code(tool_data.code, params, metadata, tool_data.inherit_from)
+    context, script = wrap_javascript_code(tool_data.code, params, metadata, tool_data.inherit_from)
 
     # 3. 调用 quickjs_tool 执行拼接的脚本
     registry = get_registry()
@@ -156,7 +156,7 @@ async def execute_tool(
     _logger.info(f"[tool_execute] tool={tool_data.name} script={script} ")
 
     try:
-        result = registry.execute("quickjs", code=script)
+        result = registry.execute("quickjs", code=script, context=context)
     except Exception as e:
         _logger.error(f"[tool_execute_error] tool={tool_data.name}, error={str(e)}")
         raise ApiException(f"执行失败: {str(e)}")
@@ -187,7 +187,7 @@ async def _execute_tool_stream(id: int, params: dict, user_info: dict = None) ->
 
     try:
         # 1. 获取工具定义
-        tool_data: ToolDto = get_service(ToolService).get_one(id)
+        tool_data: ToolDto = _service.get_one(id)
         if not tool_data:
             send_queue({
                 "type": "error",
@@ -211,29 +211,22 @@ async def _execute_tool_stream(id: int, params: dict, user_info: dict = None) ->
         config = get_app_config()
         metadata = config.get_system_metadata_dict()
         # 2. 组装 JavaScript 脚本
-        script = wrap_javascript_code(tool_data.code, params, metadata, tool_data.inherit_from)
 
         # 3. 调用 quickjs_tool 执行脚本
         registry = get_registry()
-
         _logger.info(f"[tool_execute_stream] tool={tool_data.name}")
-
-        # 发送开始执行信号
-        send_queue({
-            "type": "start",
-            "tool_name": tool_data.name,
-            "script": script[:500] + "..." if len(script) > 500 else script
-        }, "start")
 
         try:
             tool = registry.get("quickjs")
-            my_data = {"name": "Alice", "age": 30}
-            tool.expose_dict(my_data, "userData")
-            # 使用异步方法执行工具
-            result = await registry.aexecute("quickjs", code=script, tool_name=tool_data.name)
-
-            print(my_data)
-            tool.release_dict("userData")
+            context, script = wrap_javascript_code(tool_data.code, params, metadata, tool_data.inherit_from)
+            # 发送开始执行信号
+            send_queue({
+                "type": "start",
+                "tool_name": tool_data.name,
+                "script": script[:500] + "..." if len(script) > 500 else script
+            }, "start")
+            # 使用异步方法执行工具，context 会在内部自动暴露和释放
+            result = await registry.aexecute("quickjs", code=script, tool_name=tool_data.name, context=context)
 
             # 解析结果
             try:

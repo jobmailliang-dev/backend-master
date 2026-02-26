@@ -214,6 +214,68 @@ class TestQuickJSToolDict:
         assert data1["name"] == "Bob"
         assert data2["title"] == "Manager"
 
+    def test_invoke_with_context(self):
+        """测试 invoke 方法的 context 参数。"""
+        tool = QuickJSTool()
+
+        # 使用 context 参数
+        context = {"args": {"x": 10, "y": 20}, "name": "test"}
+
+        # 验证 context 可以被正确读取
+        result = tool.invoke(code="context.args.x + context.args.y", context=context)
+        assert result["result"] == 30
+
+    def test_invoke_with_context_and_metadata(self):
+        """测试带 metadata 的 context。"""
+        tool = QuickJSTool()
+
+        context = {
+            "args": {"value": 5},
+            "metadata": {"session": "abc123"},
+            "inherit_from": "parent_tool"
+        }
+
+        # 访问 metadata
+        result = tool.invoke(code="context.metadata.session", context=context)
+        assert result["result"] == "abc123"
+
+    def test_invoke_with_context_and_execute(self):
+        """测试带 context 的 function execute。"""
+        from src.utils.script_wrapper import wrap_javascript_code
+
+        tool = QuickJSTool()
+
+        code = "function execute(ctx) { return ctx.args.a * ctx.args.b; }"
+        context, script = wrap_javascript_code(code, {"a": 3, "b": 7})
+
+        result = tool.invoke(code=script, context=context)
+        assert result["result"] == 21
+
+    def test_invoke_with_context_and_inherit_from(self):
+        """测试带 inherit_from 的 context。"""
+        tool = QuickJSTool()
+
+        code = "context.inherit_from"
+        context = {"args": {}, "inherit_from": "my_parent_tool"}
+
+        result = tool.invoke(code=code, context=context)
+        assert result["result"] == "my_parent_tool"
+
+    def test_invoke_context_auto_release(self):
+        """测试 context 会在执行结束后自动释放。"""
+        tool = QuickJSTool()
+
+        context = {"args": {"x": 1}, "name": "test"}
+
+        # 执行后 context 变量应该被释放
+        tool.invoke(code="context.args.x", context=context)
+
+        # 再次访问应该失败（变量不存在）
+        try:
+            tool.invoke(code="context.args.x")
+        except ValueError as e:
+            assert "context" in str(e)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

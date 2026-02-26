@@ -317,20 +317,31 @@ class QuickJSTool(BaseTool):
 
     def _wrap_code(self, code: str) -> str:
         """包装代码以支持 return 语句。"""
-        # 检测代码中是否包含 return 语句
         stripped = code.strip()
         if 'return' in code:
-            # 如果已经有 IIFE 包装，不再重复包装
-            if stripped.startswith('(function') or stripped.startswith('function'):
+            # 判断是否已经是 IIFE 包装：以 ( 开头且以 )() 结尾
+            is_iife = stripped.startswith('(') and stripped.rstrip().endswith(')()')
+            if is_iife:
                 return code
             # 包装在立即执行函数中
             return f'(function(){{\n{code}\n}})()'
         return code
 
     def invoke(self, **kwargs) -> Dict[str, Any]:
-        """执行 JavaScript 代码。"""
+        """执行 JavaScript 代码。
+
+        Args:
+            **kwargs: 支持以下参数:
+                - code: JavaScript 代码 (必需)
+                - tool_name: 工具名称
+                - context: 可选的 context 字典，会通过 expose_dict 注册为 "context" 变量
+
+        Returns:
+            包含 code, result, result_type 的字典
+        """
         code = kwargs.get('code')
         tool_name = kwargs.get('tool_name', self.name)
+        context = kwargs.get('context')  # 可选的 context 字典
         if not code:
             raise ValueError("JavaScript code is required")
 
@@ -339,6 +350,11 @@ class QuickJSTool(BaseTool):
         ctx = self._get_context()
         ctx.set("_tool_name", tool_name)
         self._register_console_functions()
+
+        # 如果提供了 context，使用 expose_dict 注册到 JS 环境
+        context_var_name = None
+        if context:
+            context_var_name = self.expose_dict(context, "context")
 
         # 包装代码以支持 return 语句
         wrapped_code = self._wrap_code(code)
@@ -384,6 +400,10 @@ class QuickJSTool(BaseTool):
             raise ValueError(f"JavaScript syntax error: {str(e)}")
         except Exception as e:
             raise ValueError(f"JavaScript execution failed: {str(e)}")
+        finally:
+            # 执行结束后释放 context
+            if context_var_name:
+                self.release_dict(context_var_name)
 
     async def ainvoke(self, **kwargs) -> Dict[str, Any]:
         """异步执行 JavaScript 代码。

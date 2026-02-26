@@ -73,7 +73,7 @@ src/
 ├── adapters/             # LLM 适配器
 ├── config/               # 配置管理
 ├── utils/                # 通用工具
-│   └── logging_web.py    # 日志配置
+│   └── logger.py         # 日志配置
 └── web/                  # Web 中间件
     ├── logging_middleware.py  # 请求日志中间件
     └── sse.py            # SSE 支持
@@ -119,25 +119,55 @@ src/modules/xxx/
 
 ### 1. models.py - 业务实体层
 
+使用 SQLAlchemy ORM 映射，继承 `Base` 类：
+
 ```python
-from dataclasses import dataclass
-import sqlite3
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from typing import Optional, List
+from sqlalchemy import String, Text, Boolean, TIMESTAMP, Integer
+from sqlalchemy.orm import Mapped, mapped_column
+from ..datasource.database import Base
+
 
 @dataclass
-class Xxx:
-    """业务实体"""
-    id: Optional[int] = None
-    name: str = ""
-    # ... 其他字段
-
-    @classmethod
-    def from_row(cls, row: sqlite3.Row) -> "Xxx":
-        """从数据库行创建实体"""
-        ...
+class XxxParameter:
+    """参数定义（如有复杂参数）"""
+    name: str
+    description: str
+    type: str
+    required: bool = False
 
     def to_dict(self) -> dict:
-        """转换为字典"""
-        ...
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "XxxParameter":
+        return cls(**data)
+
+
+@dataclass
+class Xxx(Base):
+    """工具实体 - 同时是 ORM 模型也是业务实体"""
+    __tablename__ = "xxx"
+
+    # 数据库字段
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "is_active": self.is_active,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
+            "updated_at": self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at else None,
+        }
 ```
 
 ### 2. dtos.py - 数据传输对象层
@@ -204,34 +234,26 @@ from .models import Xxx
 from .dao import XxxDao
 from .dtos import XxxDto
 from src.modules.base import IService, ValidException
+from src.utils.logger import get_logger
 
-# 接口定义
-class IXxxService(IService[XxxDto], Protocol):
-    """服务接口"""
-
-    def get_list(self) -> List[XxxDto]:
-        ...
-
-    def get_one(self, id: int) -> Optional[XxxDto]:
-        ...
-
-    def create_one(self, data: dict) -> XxxDto:
-        ...
-
-    def update(self, id: int, data: dict) -> Optional[Xxx]:
-        ...
-
-    def delete_by_id(self, id: int) -> bool:
-        ...
-
-    def convert_dto(self, entity: Xxx) -> XxxDto:
-        """实体转 DTO"""
-        ...
+logger = get_logger(__name__)
 
 
-# 实现类
+class IXxxService(IService[XxxDto, int]):
+    """服务接口
+
+    继承 IService[ToolDto, int]，约束返回数据类型为 DTO，ID 类型为 int。
+    """
+
+    # 可扩展接口特有方法
+    pass
+
+
 class XxxService(IXxxService):
-    """服务实现"""
+    """服务实现
+
+    实现 IXxxService 接口，使用 @inject 装饰器进行依赖注入。
+    """
 
     @inject
     def __init__(self, dao: XxxDao):
@@ -240,36 +262,87 @@ class XxxService(IXxxService):
     def get_list(self) -> List[XxxDto]:
         return [self.convert_dto(x) for x in self._dao.get_all()]
 
+    def get_one(self, id: int) -> Optional[XxxDto]:
+        xxx = self._dao.get_by_id(id)
+        return self.convert_dto(xxx) if xxx else None
+
     def create_one(self, data: dict) -> XxxDto:
         # 校验逻辑
         if not data.get("name"):
             raise ValidException("名称不能为空", "name")
-        # 业务逻辑
-        ...
-        return self.convert_dto(entity)
 
-    def convert_dto(self, entity: Xxx) -> XxxDto:
-        return XxxDto(**entity.to_dict())
+        # 业务逻辑
+        xxx = Xxx(name=data["name"], description=data.get("description", ""))
+        xxx_id = self._dao.create(xxx)
+        xxx.id = xxx_id
+
+        return self.convert_dto(xxx)
+
+    def update(self, id: int, data: dict) -> Optional[Xxx]:
+        xxx = self._dao.get_by_id(id)
+        if not xxx:
+            raise ValidException("记录不存在", "id")
+
+        if "name" in data:
+            xxx.name = data["name"]
+        if "description" in data:
+            xxx.description = data["description"]
+
+        self._dao.update(xxx)
+        return xxx
+
+    def delete_by_id(self, id: int) -> bool:
+        xxx = self._dao.get_by_id(id)
+        if not xxx:
+            raise ValidException("记录不存在", "id")
+        self._dao.delete(id)
+        return True
+
+    def convert_dto(self, entity) -> XxxDto:
+        if isinstance(entity, Xxx):
+            data = entity.to_dict()
+        else:
+            data = entity
+        return XxxDto(**data)
 ```
 
 ### 5. 注册依赖注入
 
-在 `src/modules/__init__.py` 中：
+模块通过 `InjectModuleInitializer` 自动注册，只需在 `src/modules/__init__.py` 中添加 Module 定义：
 
 ```python
+from injector import Module, singleton, Binder
+
+# 导入实体、Service、Dao
 from .xxx import Xxx, XxxService, XxxDao
 
+
 class XxxModule(Module):
+    """Xxx 模块配置"""
+
     def configure(self, binder: Binder):
-        binder.bind(XxxDao, scope=singleton)
-        binder.bind(XxxService, scope=singleton)
+        # DAO - 单例
+        binder.bind(
+            XxxDao,
+            scope=singleton
+        )
+        # Service - 单例
+        binder.bind(
+            XxxService,
+            scope=singleton
+        )
 
-injector = Injector([
-    DatabaseModule(),
-    XxxModule(),  # 添加
-])
 
-__all__ = [..., "Xxx", "XxxService", "XxxDao"]
+__all__ = [..., "Xxx", "XxxService", "XxxDao", "XxxModule"]
+```
+
+**获取服务**：在 API 层使用 `get_service()` 函数获取（无需手动获取 Injector）：
+
+```python
+from src.core import get_service
+from src.modules import XxxService
+
+_service = get_service(XxxService)
 ```
 
 ### 6. API 路由层
@@ -279,49 +352,57 @@ __all__ = [..., "Xxx", "XxxService", "XxxDao"]
 ```python
 from fastapi import APIRouter, Query
 from src.api.models import ApiResponse
-from src.modules import XxxService, get_injector
+from src.core import get_service
+from src.modules import XxxService
 from src.modules.base import ValidException
+from src.utils.logger import get_logger
 from .dtos import XxxDto
 
 router = APIRouter(prefix="/api/xxx", tags=["xxx"])
-_injector = get_injector()
+
+# 使用 get_service 获取服务实例
+_service = get_service(XxxService)
+# 使用 get_logger 获取日志器
+_logger = get_logger(__name__)
+
 
 @router.get("")
 async def get_xxx_list():
     """获取列表"""
-    service: XxxService = _injector.get(XxxService)
-    return ApiResponse.ok(service.get_list())
+    return ApiResponse.ok(_service.get_list())
+
 
 @router.get("/{id}")
 async def get_xxx(id: int):
     """获取单个"""
-    service: XxxService = _injector.get(XxxService)
-    dto = service.get_one(id)
+    dto = _service.get_one(id)
     if not dto:
-        raise ValidException("xxx not found")
+        raise ValidException("记录不存在")
     return ApiResponse.ok(dto)
+
 
 @router.post("")
 async def create_xxx(request: dict):
     """创建"""
-    service: XxxService = _injector.get(XxxService)
-    dto = service.create_one(request)
+    dto = _service.create_one(request)
+    _logger.info(f"[xxx_create] id={dto.id if dto else None}")
     return ApiResponse.ok(dto)
+
 
 @router.put("/{id}")
-async def update_xxx(id: int, request: dict):
+async def update_xxx(id: int, request: dict = None):
     """更新"""
-    service: XxxService = _injector.get(XxxService)
-    dto = service.update(id, request)
+    dto = _service.update(id, request or {})
     if not dto:
-        raise ValidException("xxx not found")
+        raise ValidException("记录不存在")
+    _logger.info(f"[xxx_update] id={id}")
     return ApiResponse.ok(dto)
 
+
 @router.delete("/{id}")
-async def delete_xxx(id: int):
+async def delete_xxx(id: int = Query(..., description="ID")):
     """删除"""
-    service: XxxService = _injector.get(XxxService)
-    success = service.delete_by_id(id)
+    success = _service.delete_by_id(id)
     return ApiResponse.ok(success)
 ```
 
@@ -339,21 +420,23 @@ app.include_router(xxx_router)
 
 | 层级 | 文件 | 命名 | 类型 | 依赖注入 |
 |------|------|------|------|----------|
-| 实体 | models.py | Xxx | @dataclass | - |
+| 实体 | models.py | Xxx | SQLAlchemy Base | - |
 | DTO | dtos.py | XxxDto | Pydantic BaseModel | - |
-| DAO | dao.py | XxxDao | class | @inject(conn) |
-| Service | service.py | XxxService | class | @inject(xxx_dao) |
-| API | api/xxx.py | - | FastAPI | _injector.get() |
+| DAO | dao.py | XxxDao | class | @inject |
+| Service | service.py | XxxService | class | @inject |
+| API | api/xxx.py | - | FastAPI | get_service() |
 
 **规范清单**：
+- [ ] 实体继承 `Base`，使用 SQLAlchemy ORM
 - [ ] DAO 使用 `@inject` 装饰器
 - [ ] Service 使用 `@inject` 装饰器
-- [ ] Service 继承 `IService[XxxDto]`
+- [ ] Service 继承 `IService[XxxDto, int]`
 - [ ] Service 实现 `convert_dto()` 方法
 - [ ] 校验失败抛出 `ValidException`
 - [ ] API 返回 `ApiResponse.ok(data)`
-- [ ] API 异常抛出 `ValidException`（中间件统一处理）
-- [ ] 在 `modules/__init__.py` 注册模块
+- [ ] API 使用 `get_service()` 获取服务
+- [ ] API 使用 `get_logger(__name__)` 获取日志器
+- [ ] 在 `modules/__init__.py` 添加 Module 类
 
 ## 配置
 
@@ -386,44 +469,46 @@ tools:
 
 ### 功能特性
 
-- **自动记录请求/响应**：所有 HTTP 请求自动记录
+- **自动记录请求/响应**：所有 HTTP 请求自动记录（通过 `LoggingMiddleware`）
 - **控制台简洁输出**：便于阅读
-- **JSON 文件存储**：便于后续分析
+- **文件存储**：按时间轮转保存日志
 - **敏感信息脱敏**：自动过滤密码、API 密钥等
 - **日志轮转**：每天零点切割，保留 30 天
 
 ### 日志配置
 
-日志系统在 Web 模式启动时自动初始化，无需手动配置。
+日志系统在 Web 模式启动时自动初始化，通过 `ApplicationInitializer` 自动调用。
 
 ```python
-from src.utils.logging_web import setup_logging
+from src.utils.logger import setup_logging, get_logger
 
-# 自定义配置
-logger = setup_logging(
-    log_level="INFO",       # 日志级别
-    console_output=True,    # 控制台输出
-    file_output=True,       # 文件输出
-    retention_days=30,     # 保留天数
+# 初始化日志系统（在应用启动时调用一次）
+setup_logging(
+    log_dir="logs",           # 日志目录
+    retention_days=30,       # 保留天数
 )
+
+# 在模块中获取日志器
+logger = get_logger(__name__)
+logger.info("message")
 ```
 
 ### 日志文件
 
 - 目录：`backend/logs/`
 - 文件：`api.log`
-- 格式：JSON 结构化日志
+- 格式：标准 logging 格式（`%(asctime)s - %(name)s - %(levelname)s - %(message)s`）
 
 ### 使用示例
 
 ```python
-from src.utils.logging_web import get_request_logger
+from src.utils.logger import get_logger
 
-logger = get_request_logger("src.api.tools")
-logger.info(f"[tool_create] id={tool_id}, body={body_str}")
+logger = get_logger(__name__)
+
+logger.info(f"[tool_create] id={tool_id}")
+logger.error(f"[tool_execute_error] tool={tool_name}, error={str(e)}")
 ```
-
-详细文档：[docs/logging.md](../docs/logging.md)
 
 ## 测试
 
@@ -441,15 +526,17 @@ logger.info(f"[tool_create] id={tool_id}, body={body_str}")
 |------|------|
 | `src/__main__.py` | 应用入口 |
 | `src/api/models.py` | 通用 API 响应模型（ApiResponse） |
-| `src/api/tools.py` | 工具管理 API |
+| `src/api/tools.py` | 工具管理 API（参考模板） |
+| `src/core/__init__.py` | 核心模块导出（get_service, get_app_config） |
 | `src/modules/base.py` | 基础接口（IService, ValidException） |
-| `src/modules/tools/models.py` | Tool 业务实体 |
+| `src/modules/__init__.py` | 模块注册和注入器配置 |
+| `src/modules/tools/models.py` | Tool 业务实体（ORM 模型参考） |
 | `src/modules/tools/dtos.py` | Tool DTO |
 | `src/modules/tools/dao.py` | Tool 数据访问 |
-| `src/modules/tools/service.py` | Tool 服务层 |
-| `src/utils/logging_web.py` | 日志配置模块 |
+| `src/modules/tools/service.py` | Tool 服务层（参考模板） |
+| `src/utils/logger.py` | 日志配置模块 |
 | `src/web/logging_middleware.py` | HTTP 请求日志中间件 |
-| `docs/logging.md` | 日志模块文档 |
+| `src/datasource/database.py` | SQLAlchemy 数据库基类 |
 | `pyproject.toml` | 项目配置 |
 
 **参考模板**：`src/modules/tools/` 目录下的 models.py → dtos.py → dao.py → service.py → api/tools.py
@@ -460,3 +547,5 @@ logger.info(f"[tool_create] id={tool_id}, body={body_str}")
 |--------|------|------|
 | 2026-02-03 11:32:16 | 初始化 | 首次生成 AI 上下文文档 |
 | 2026-02-17 22:00:00 | 更新 | 更新为 WIMI CHAT 项目文档 |
+| 2026-02-26 00:00:00 | 更新 | 完善模块文档，统一格式 |
+| 2026-02-26 00:30:00 | 更新 | 更新接口日志、服务层、依赖注入、API路由层模板 |
