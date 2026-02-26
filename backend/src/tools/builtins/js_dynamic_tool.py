@@ -40,6 +40,8 @@ class DynamicTool(BaseTool):
             }
             if p.enum:
                 prop["enum"] = p.enum
+            if p.default is not None:
+                prop["default"] = p.default
             properties[p.name] = prop
 
             if p.required:

@@ -40,3 +40,16 @@ class IMessageStore(Protocol):
             元数据字典
         """
         ...
+
+    def save_ask_user(
+        self,
+        id: str,
+        content: str,
+    ) -> None:
+        """保存 ask_user 消息
+
+        Args:
+            id: 消息 ID
+            content: 消息内容 (JSON 字符串)
+        """
+        ...

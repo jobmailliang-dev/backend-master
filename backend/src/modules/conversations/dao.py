@@ -97,3 +97,16 @@ class MessageDao:
             .filter(Message.conversation_id == conversation_id)
             .count()
         )
+
+    def get_by_id(self, message_id: str) -> Optional[Message]:
+        """根据 ID 获取消息"""
+        return self._session.get(Message, message_id)
+
+    def update_content(self, message_id: str, content: str) -> bool:
+        """更新消息内容"""
+        orm = self._session.get(Message, message_id)
+        if not orm:
+            return False
+        orm.content = content
+        self._session.commit()
+        return True

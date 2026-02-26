@@ -66,3 +66,23 @@ class MessageStoreImpl(IMessageStore):
         if conversation:
             return conversation.meta_data
         return {}
+
+    def save_ask_user(
+        self,
+        id: str,
+        content: str,
+    ) -> None:
+        """保存 ask_user 消息到数据库
+
+        Args:
+            id: 消息 ID
+            content: 消息内容 (JSON 字符串)
+        """
+        self._message_service.create_message(
+            self._conversation_id,
+            role="ask_user",
+            content=content,
+            tool_calls=[],
+            tool_call_id=None,
+            id=id,
+        )

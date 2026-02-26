@@ -3,7 +3,8 @@
     "allow": [
       "WebSearch",
       "WebFetch(domain:python-prompt-toolkit.readthedocs.io)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cd:*)"
     ]
   }
 }

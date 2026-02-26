@@ -45,6 +45,10 @@ class IConversationService(IService[ConversationDto, str]):
         """更新对话标题"""
         ...
 
+    def update_metadata(self, conversation_id: str, form_data: dict) -> Optional[ConversationDto]:
+        """更新对话元数据"""
+        ...
+
     def delete_by_id(self, conversation_id: str) -> bool:
         """删除对话"""
         ...
@@ -139,6 +143,29 @@ class ConversationService(IConversationService):
         conv = self.update(conversation_id, {"title": title})
         return self.convert_dto(conv) if conv else None
 
+    def update_metadata(self, conversation_id: str, form_data: dict) -> Optional[ConversationDto]:
+        """更新对话元数据
+
+        Args:
+            conversation_id: 对话 ID
+            form_data: 要更新的键值对数据
+
+        Returns:
+            更新后的对话 DTO
+        """
+        conv = self._dao.get_by_id(conversation_id)
+        if not conv:
+            return None
+
+        # 合并现有的 metadata 和新的 form_data
+        current_meta = conv.meta_data or {}
+        current_meta.update(form_data)
+        conv.meta_data = current_meta
+        conv.update_time = datetime.now()
+
+        self._dao.update(conv)
+        return self.convert_dto(conv)
+
 
     def delete_by_id(self, conversation_id: str) -> bool:
         """删除对话"""
@@ -202,7 +229,7 @@ class MessageService(IMessageService):
         return self.create_message(conversation_id, role, content)
 
     def create_message(
-        self, conversation_id: str, role: str, content: str, tool_calls: list = None, tool_call_id: str = None, meta_data: dict = None
+        self, conversation_id: str, role: str, content: str, tool_calls: list = None, tool_call_id: str = None, meta_data: dict = None, id: str = None
     ) -> MessageDto:
         """创建消息并更新对话
 
@@ -213,11 +240,12 @@ class MessageService(IMessageService):
             tool_calls: 工具调用列表
             tool_call_id: 工具调用 ID
             meta_data: 对话元数据，如果提供则更新到 Conversation
+            id: 消息 ID，如果不提供则自动生成
         """
         now = datetime.now()
 
         message = Message(
-            id=generate_message_id(),
+            id=id if id else generate_message_id(),
             conversation_id=conversation_id,
             role=role,
             content=content,
@@ -253,6 +281,10 @@ class MessageService(IMessageService):
     def update(self, message_id: str, data: dict) -> Optional[Message]:
         """更新消息"""
         return None
+
+    def update_message_content(self, message_id: str, content: str) -> bool:
+        """更新消息内容"""
+        return self._dao.update_content(message_id, content)
 
     def delete_by_id(self, message_id: str) -> bool:
         """删除消息"""

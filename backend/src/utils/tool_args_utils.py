@@ -28,6 +28,9 @@ def fill_default_args(tool_schema: Dict[str, Any], tool_args: Dict[str, Any]) ->
         >>> fill_default_args(schema, args)
         {"command": "ls", "timeout": 60}
     """
+
+    print(f"fill_default_args===={tool_schema}====={tool_args}")
+
     if not tool_schema:
         return tool_args
 

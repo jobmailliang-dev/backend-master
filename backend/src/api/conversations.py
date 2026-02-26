@@ -108,3 +108,62 @@ async def create_message(
     service = get_service(MessageService)
     message = service.create_message(conversationId, role, content)
     return ApiResponse.ok(message)
+
+
+class UpdateMetadataRequest(BaseModel):
+    """更新元数据请求体"""
+    conversation_id: str
+    form_data: dict
+    message_id: Optional[str] = None
+    questions: Optional[list] = None
+
+
+@router.post("/update_metadata")
+async def update_metadata(request: UpdateMetadataRequest):
+    """更新对话元数据"""
+    if not request.conversation_id:
+        return ApiResponse.fail("缺少 conversation_id 参数")
+
+    if not request.form_data:
+        return ApiResponse.fail("缺少 form_data 参数")
+
+    # 更新对话元数据
+    conv_service = get_service(ConversationService)
+    conv = conv_service.update_metadata(request.conversation_id, request.form_data)
+    if not conv:
+        return ApiResponse.fail("对话不存在")
+
+    # 如果提供了 message_id，更新消息状态为 FINISH
+    if request.message_id:
+        import json
+        msg_service = get_service(MessageService)
+        # 获取消息
+        messages = msg_service.get_by_conversation_id(request.conversation_id)
+        target_msg = None
+        for msg in messages:
+            if msg.id == request.message_id:
+                target_msg = msg
+                break
+
+        if target_msg:
+            # 解析 content，更新 status 为 FINISH
+            try:
+                content_data = json.loads(target_msg.content)
+                content_data["status"] = "FINISH"
+                print(f"11111111{content_data}")
+
+                # 解析 questions，赋值 answer
+                if content_data.get("questions"):
+                    for question in content_data["questions"]:
+                        name = question.get("id")
+                        if name and request.form_data and name in request.form_data:
+                            question["answer"] = request.form_data[name]
+
+                print(f"11111111{content_data}")
+
+                new_content = json.dumps(content_data, ensure_ascii=False)
+                msg_service.update_message_content(request.message_id, new_content)
+            except json.JSONDecodeError:
+                pass
+
+    return ApiResponse.ok(conv)

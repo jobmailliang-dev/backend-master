@@ -2,10 +2,7 @@
 
 执行 JavaScript 代码并返回结果。
 """
-
-import asyncio
 import json
-import json as pyjson
 from typing import Any, Dict, List, Optional
 
 import quickjs  # pyright: ignore[reportImplicitRelativeImport]
@@ -13,6 +10,7 @@ import quickjs  # pyright: ignore[reportImplicitRelativeImport]
 from src.tools.base import BaseTool
 from src.tools.quickjs.func_console import apply as apply_console
 from src.tools.quickjs.call_tool import apply as apply_call_tool
+from src.tools.quickjs.sse_push import apply as apply_sse_push
 from src.tools.quickjs.dict_proxy import DictProxy, DictProxyManager
 
 
@@ -263,32 +261,10 @@ class QuickJSTool(BaseTool):
         ctx = self._get_context()
         apply_console(ctx)
         apply_call_tool(ctx)
+        apply_sse_push(ctx)
 
     def _get_js_type(self, value: Any) -> str:
         """获取 JavaScript 结果类型。"""
-        # quickjs.Object 类型需要通过 class_id 判断
-        if isinstance(value, quickjs.Object):
-            # 尝试转换为 Python 对象
-            try:
-                py_value = value.json
-                if callable(py_value):
-                    py_value = py_value()
-                if isinstance(py_value, list):
-                    return "array"
-                if isinstance(py_value, dict):
-                    return "object"
-            except Exception:
-                pass
-            # 通过 JS 的 instanceof 判断
-            try:
-                ctx = self._get_context()
-                is_array = ctx.eval(f"{value.js_id} instanceof Array")
-                if is_array:
-                    return "array"
-            except Exception:
-                pass
-            return "object"
-
         if isinstance(value, bool):
             return "boolean"
         elif isinstance(value, (int, float)):
@@ -363,28 +339,11 @@ class QuickJSTool(BaseTool):
 
         try:
             ctx = self._get_context()
-            result = ctx.eval(wrapped_code)
-
-            # 获取结果值
-            if hasattr(result, 'value'):
-                value = result.value
-            else:
-                value = result
-
-            # 尝试转换为 Python 对象便于序列化
-            if isinstance(value, quickjs.Object):
-                try:
-                    json_val = value.json
-                    if callable(json_val):
-                        json_val = json_val()
-                    # 解析 JSON 字符串为 Python 对象
-                    if isinstance(json_val, str):
-                        import json as pyjson
-                        value = pyjson.loads(json_val)
-                    else:
-                        value = json_val
-                except Exception:
-                    pass
+            value = ctx.eval(f"JSON.stringify({wrapped_code})")
+            try:
+                value =  json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                pass
 
             result_type = self._get_js_type(value)
 

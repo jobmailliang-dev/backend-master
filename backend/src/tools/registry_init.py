@@ -15,7 +15,8 @@ from src.tools.builtins import (
     BashTool,
     QuickJSTool,
     HttpTool,
-    DynamicTool
+    DynamicTool,
+    AskUserTool
 )
 from src.utils.logger import get_logger
 from src.tools.mcp import register_mcp_servers
@@ -31,6 +32,7 @@ SYSTEM_TOOL_CLASSES = [
     BashTool,
     QuickJSTool,
     HttpTool,
+    AskUserTool
 ]
 
 # 从系统工具类中提取名称集合（供 API 校验使用）
