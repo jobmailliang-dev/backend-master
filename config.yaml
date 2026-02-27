@@ -37,14 +37,13 @@ tools:
     - read_file
     - bash
     - quickjs
-    - tavily-mcp_tavily-search
-    - tavily-mcp_tavily-extract
     - context7_resolve-library-id
     - context7_query-docs
-    - my_sqlite_db_all_table_names
-    - my_sqlite_db_schema_definitions
-    - my_sqlite_db_execute_query
-    - my_sqlite_db_all_table_names 
+    - fetch_fetch
+    # - my_mysql_db_all_table_names
+    # - my_mysql_db_filter_table_names
+    # - my_mysql_db_schema_definitions
+    # - my_mysql_db_execute_query
     - ask_user
   max_tool_calls: 100
   show_tool_calls: true
@@ -65,9 +64,8 @@ system_metadata:
   current_time: "{time}"
   # login_user: admin
   current_shell_environment: windows
-  # cps_base_url: http://192.168.20.238/api
-  # cps_authorization: Basic c2FiZXI6c2FiZXJfc2VjcmV0
-  # cps_access_token: bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpc3N1c2VyIiwiYXVkIjoiYXVkaWVuY2UiLCJ0ZW5hbnRfaWQiOiIwMDAwMDAiLCJ1c2VyX25hbWUiOiJhZG1pbiIsInJlYWxfbmFtZSI6ImFkbWluIiwidG9rZW5fdHlwZSI6ImFjY2Vzc190b2tlbiIsInJvbGVfbmFtZSI6ImFkbWluaXN0cmF0b3IsIiwicG9zdF9pZCI6IjE5NDAzMTE0NDQ2NTE3NDExODYiLCJ1c2VyX2lkIjoiMTEyMzU5ODgyMTczODY3NTIwMSIsInJvbGVfaWQiOiIxMTIzNTk4ODE2NzM4Njc1MjAxLDE5NTEyMjgwNDgyMDU4MTU4MDkiLCJuaWNrX25hbWUiOiJhZG1pbiIsImRldGFpbCI6eyJ0eXBlIjoid2ViIn0sImRlcHRfaWQiOiIxMTIzNTk4ODEzNzM4Njc1MjAxIiwiYWNjb3VudCI6ImFkbWluIiwiY2xpZW50X2lkIjoic2FiZXIiLCJleHAiOjE3NzI2ODg4OTQsIm5iZiI6MTc3MDA5Njg5NH0.p-mAYXecwpyUJa-fB0gBZQ6bnPt-gQmytbccQg0lZVc
+  cps_access_token: bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpc3N1c2VyIiwiYXVkIjoiYXVkaWVuY2UiLCJ0ZW5hbnRfaWQiOiIwMDAwMDAiLCJ1c2VyX25hbWUiOiJhZG1pbiIsInJlYWxfbmFtZSI6ImFkbWluIiwidG9rZW5fdHlwZSI6ImFjY2Vzc190b2tlbiIsInJvbGVfbmFtZSI6ImFkbWluaXN0cmF0b3IsLG51bGwiLCJwb3N0X2lkIjoiMTk0MDMxMTQ0NDY1MTc0MTE4NiIsInVzZXJfaWQiOiIxMTIzNTk4ODIxNzM4Njc1MjAxIiwicm9sZV9pZCI6IjExMjM1OTg4MTY3Mzg2NzUyMDEsMjAyNjk2MTk4OTAyNTUyOTg1OCwxOTUxMjI4MDQ4MjA1ODE1ODA5Iiwibmlja19uYW1lIjoiYWRtaW4iLCJkZXRhaWwiOnsidHlwZSI6IndlYiJ9LCJkZXB0X2lkIjoiMTEyMzU5ODgxMzczODY3NTIwMSIsImFjY291bnQiOiJhZG1pbiIsImNsaWVudF9pZCI6InNhYmVyIiwiZXhwIjoxNzc0NzQ0NzIwLCJuYmYiOjE3NzIxNTI3MjB9.6YqYK3-RHCBs8mB8ULqu0Igf_OlNbD_ZD1dHYwEPl4U
+
 
 
 server:
