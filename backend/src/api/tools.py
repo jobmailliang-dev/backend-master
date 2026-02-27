@@ -7,7 +7,8 @@ from typing import Any, AsyncGenerator
 
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
-
+from src.core.session import SessionManager
+from src.core.session_context import set_session
 from src.api.models import ApiResponse
 from src.modules import ToolService
 from src.core import get_app_config, get_service
@@ -210,7 +211,9 @@ async def _execute_tool_stream(id: int, params: dict, user_info: dict = None) ->
 
         config = get_app_config()
         metadata = config.get_system_metadata_dict()
-        # 2. 组装 JavaScript 脚本
+        session = SessionManager("", metadata)
+        set_session(session)
+
 
         # 3. 调用 quickjs_tool 执行脚本
         registry = get_registry()

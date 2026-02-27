@@ -150,16 +150,14 @@ async def update_metadata(request: UpdateMetadataRequest):
             try:
                 content_data = json.loads(target_msg.content)
                 content_data["status"] = "FINISH"
-                print(f"11111111{content_data}")
 
                 # 解析 questions，赋值 answer
                 if content_data.get("questions"):
                     for question in content_data["questions"]:
-                        name = question.get("id")
+                        name = question.get("id")   
                         if name and request.form_data and name in request.form_data:
                             question["answer"] = request.form_data[name]
 
-                print(f"11111111{content_data}")
 
                 new_content = json.dumps(content_data, ensure_ascii=False)
                 msg_service.update_message_content(request.message_id, new_content)
