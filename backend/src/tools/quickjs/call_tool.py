@@ -7,6 +7,7 @@ import json
 from typing import Any, Dict
 
 from src.tools.registry import get_registry
+from src.utils.tool_args_utils import fill_default_args
 
 
 def apply(ctx):
@@ -32,6 +33,7 @@ def apply(ctx):
 
         # 检查工具是否存在
         tool = registry.get(tool_name)
+        
         if tool is None:
             available = registry.list_all()
             # 返回包含详细错误信息的 JSON
@@ -45,12 +47,17 @@ def apply(ctx):
         # 解析 JSON 字符串
         try:
             args = json.loads(args_json) if args_json else {}
+
         except json.JSONDecodeError as e:
             return {
                 "error": "InvalidArgs",
                 "tool": tool_name,
                 "message": f"Invalid JSON arguments: {str(e)}"
             }
+
+        # 获取工具 schema 并填充默认值
+        tool_schema = tool.get_parameters() 
+        args = fill_default_args(tool_schema, args)
 
         # 执行工具
         try:
