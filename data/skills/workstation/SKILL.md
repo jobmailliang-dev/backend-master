@@ -1,15 +1,13 @@
 ---
 name: workstation
 description: 工位基础数据
-allowed_tools: 
-    - 查询工位组工位列表
 ---
 
 # 工位数据引导参考文件
 
 ## Overview
 
-指导文件可以帮助你查询工位相关数据, 请充分阅读后组合脚本代码获取数据
+指导文件可以帮助你查询工位相关数据, 请充分阅读后组合脚本代码使用工具`QuickJSTool` 获取数据
 
 
 ### 基础查询工位数据
@@ -75,4 +73,6 @@ for (var i = 0; i < group_list.length; i++) {
 // 返回数组：[{id: "001", name: "组A", workstation_count: 5}, ...]
 return result;
 ```
+
+
 
