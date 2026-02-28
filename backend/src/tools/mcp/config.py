@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+import json5
+
 from src.config.dotenv_loader import expand_env_in_dict
 
 
@@ -37,7 +39,8 @@ def _load_from_files(project_root: str) -> dict[str, Any] | None:
         if not path.exists():
             continue
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            # 使用 json5 解析，支持注释
+            data = json5.loads(path.read_text(encoding="utf-8"))
             # 替换环境变量
             return expand_env_in_dict(data)
         except Exception:

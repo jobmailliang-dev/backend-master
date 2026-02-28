@@ -73,6 +73,8 @@ class DynamicTool(BaseTool):
         if session:
             metadata = session._metadata
 
+        print(f"sssssssss==={self.name} ==== {metadata}")
+
         # 包装 JavaScript 脚本，获取 context 和 script
         context, script = wrap_javascript_code(
             self._tool.code,

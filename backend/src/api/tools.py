@@ -147,6 +147,8 @@ async def execute_tool(
 
     config = get_app_config()
     metadata = config.get_system_metadata_dict()
+    session = SessionManager("", metadata)
+    set_session(session)
     # 2. 组装 JavaScript 脚本
     context, script = wrap_javascript_code(tool_data.code, params, metadata, tool_data.inherit_from)
 
