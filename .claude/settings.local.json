@@ -4,7 +4,8 @@
       "WebSearch",
       "WebFetch(domain:python-prompt-toolkit.readthedocs.io)",
       "Bash(git commit:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(git add:*)"
     ]
   }
 }

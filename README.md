@@ -12,29 +12,62 @@ LLM CLI V4 - 支持 Web 和 CLI 双模式的 AI 聊天应用。
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 创建 Conda 环境
 
 ```bash
-# 后端依赖
-cd backend
-pip install -r requirements.txt
+# 创建 Python 3.11 环境
+conda create -n llm python=3.11.14
 
-# 前端依赖
-cd frontend
-npm install
+# 激活环境
+conda activate llm
 ```
 
-### 2. 配置
+### 2. 安装依赖
 
-编辑 `config.yaml`：
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+### 3. 配置 API Key
+
+复制环境变量示例文件并配置 API Key：
+
+```bash
+cp .env.example .env.dev
+```
+
+编辑 `.env.dev`，修改以下配置：
+
+```bash
+API_URL=your-api-url
+API_KEY=your-api-key
+API_MODEL=your-model
+LOG_LEVEL=INFO
+```
+
+### 4. 运行
+
+#### CLI 模式
+
+```bash
+python -m src --cli
+```
+
+#### Web 模式
+
+```bash
+python -m src
+```
+
+访问 http://localhost:8000
+
+### 5. 配置 (可选)
+
+如需修改更多配置信息，编辑 `config.yaml`：
 
 ```yaml
-openai:
-  api_base: "https://api.openai.com/v1"
-  api_key: "your-api-key"
-  model: "gpt-3.5-turbo"
-  temperature: 0.7
-
+# 启用工具
 tools:
   enabled: true
   show_tool_calls: true
@@ -45,81 +78,80 @@ tools:
     - datetime
     - read_file
     - skill
-
-server:
-  host: "0.0.0.0"
-  port: 8000
 ```
 
-### 3. 运行
+### 6. MCP 服务器配置 (可选)
 
-#### Web 模式 (默认)
+支持通过 MCP (Model Context Protocol) 扩展工具。编辑 `mcp_servers.json`：
 
-```bash
-cd backend
-python -m src
-
-# 或显式指定
-python -m src --web
+```json
+{
+  "fetch": {
+    "command": "uvx",
+    "args": ["mcp-server-fetch"]
+  }
+}
 ```
 
-访问 http://localhost:8000
+### 7. 技能系统 (可选)
 
-#### CLI 模式
+技能是预定义的上下文内容，可在对话中动态加载。在 `data/skills` 目录下编写技能文件：
 
-```bash
-cd backend
-python -m src --cli
+```
+data/skills/
+├── pdf/
+│   └── SKILL.md       # PDF 处理技能
+└── order/
+    └── SKILL.md       # 订单管理技能
 ```
 
-### 4. 前端开发
+**技能文件格式** (`SKILL.md`)：
 
-```bash
-cd frontend
-npm run dev     # 开发模式
-npm run build   # 构建生产版本
+```yaml
+---
+name: pdf
+description: PDF 处理技能，用于读取、创建、编辑 PDF 文档
+---
+
+# PDF 处理指南
+
+## 常用操作
+
+### 读取 PDF
+...
+
+### 提取表格
+...
+```
+
+技能通过 `skill` 工具调用：
+
+```
+请使用 pdf 技能处理这个文档
 ```
 
 ## 项目结构
 
 ```
-llm-cli-v3/
-├── backend/           # FastAPI 后端
-│   ├── src/
-│   │   ├── api/       # API 路由
-│   │   ├── cli/       # CLI 交互层
-│   │   ├── core/      # 核心业务逻辑
-│   │   ├── tools/     # 工具系统
-│   │   ├── skills/    # 技能系统
-│   │   ├── adapters/  # API 适配器
-│   │   ├── config/    # 配置管理
-│   │   ├── web/       # Web 专用模块
-│   │   └── utils/     # 工具函数
-│   └── static/        # 前端构建产物
-├── frontend/          # Vue.js 前端
-│   └── src/
-│       ├── api/       # API 调用
-│       ├── components/# UI 组件
-│       ├── stores/    # 状态管理
-│       └── composables# 组合式函数
-├── data/              # 数据目录
-│   └── skills/        # 技能文件
-└── config.yaml        # 配置文件
+backend/
+├── src/
+│   ├── api/          # API 路由
+│   ├── cli/          # CLI 交互层
+│   ├── core/         # 核心业务逻辑
+│   ├── tools/        # 工具系统
+│   ├── skills/       # 技能系统
+│   ├── adapters/     # API 适配器
+│   ├── config/       # 配置管理
+│   ├── web/          # Web 专用模块
+│   └── utils/        # 工具函数
+├── static/           # 前端构建产物
+└── config.yaml       # 配置文件
 ```
 
-## API 接口
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/health` | GET | 健康检查 |
-| `/api/chat` | POST | 同步聊天 |
-| `/api/chat/stream` | GET | SSE 流式聊天 |
-| `/api/tools` | GET | 工具列表 |
 
 ## 技术栈
 
 - **后端**: FastAPI + Uvicorn + SSE
-- **前端**: Vue 3 + Vite + Pinia + TailwindCSS
 - **LLM**: OpenAI 兼容 API
 
 ## 许可证

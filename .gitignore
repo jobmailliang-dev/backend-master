@@ -56,3 +56,7 @@ Thumbs.db
 static/
 .spec-workflow/
 .claude/
+
+# Environment
+.env.dev
+.env.prod
