@@ -90,7 +90,6 @@ def fill_default_args(tool_schema: Dict[str, Any], tool_args: Dict[str, Any]) ->
     if not properties:
         return tool_args
 
-    print(f"fill_default_args===={tool_schema}====={tool_args}")
 
     result = dict(tool_args)
 
