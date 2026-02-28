@@ -62,6 +62,14 @@ python -m src
 
 访问 http://localhost:8000
 
+#### 生产环境
+
+修改 `.env` 默认配置信息(或者新增`.env.prod`优先级覆盖`.env`)
+
+```bash
+python -m src --env=prod
+```
+
 ### 5. 配置 (可选)
 
 如需修改更多配置信息，编辑 `config.yaml`：

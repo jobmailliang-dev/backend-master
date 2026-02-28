@@ -1,7 +1,7 @@
 # LLM CLI v2 Configuration
 
 llm:
-  provider: openai
+  provider: ${LLM_PROVIDER:openai}
 
 # OpenAI API Configuration
 openai:
@@ -17,7 +17,7 @@ openai:
 qwen:
   api_url: ${API_URL::https://dashscope.aliyuncs.com/compatible-mode/v1}
   api_key: ${API_KEY}
-  model: ${API_MODEL::qwen3:8b}
+  model: ${API_MODEL::qwen3-8b}
   max_tokens: 1000
   temperature: 0.7
   use_stream: true
