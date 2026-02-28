@@ -5,6 +5,7 @@
 
 import httpx
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 from src.tools.base import BaseTool
 
@@ -83,10 +84,46 @@ class HttpTool(BaseTool):
         content = kwargs.get("content", None)
         follow_redirects = kwargs.get("follow_redirects", True)
 
-        print(f"HTTP({method} {url})")
-
         if not url:
             raise ValueError("URL cannot be empty")
+
+        # 合并 URL 中的查询参数和 params
+        # 解决 GET 请求时 URL 参数和 params 参数同时存在时，URL 参数失效的问题
+        parsed_url = urlparse(url)
+        url_query_params = parse_qs(parsed_url.query)
+
+        # 合并参数：URL 参数优先，params 作为补充
+        merged_params = dict(url_query_params)
+        for key, value in params.items():
+            if key in merged_params:
+                # 如果参数已存在，合并为列表
+                if isinstance(merged_params[key], list):
+                    if isinstance(value, list):
+                        merged_params[key].extend(value)
+                    else:
+                        merged_params[key].append(value)
+                else:
+                    existing = merged_params[key]
+                    merged_params[key] = [existing] if isinstance(existing, str) else existing
+                    if isinstance(value, list):
+                        merged_params[key].extend(value)
+                    else:
+                        merged_params[key].append(value)
+            else:
+                merged_params[key] = value
+
+        # 重新构建 URL（清除原有查询参数）
+        new_query = urlencode(merged_params, doseq=True)
+        url = urlunparse((
+            parsed_url.scheme,
+            parsed_url.netloc,
+            parsed_url.path,
+            parsed_url.params,
+            new_query,
+            parsed_url.fragment
+        ))
+
+        print(f"HTTP({method} {url})")
 
         client = self._get_client()
 
@@ -95,7 +132,7 @@ class HttpTool(BaseTool):
                 method=method,
                 url=url,
                 headers=headers if headers else None,
-                params=params if params else None,
+                params=merged_params if merged_params else None,
                 json=json_data,
                 data=form_data if form_data else None,
                 content=content,
