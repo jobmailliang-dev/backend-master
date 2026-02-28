@@ -1,6 +1,8 @@
 ---
 name: workstation
 description: 工位基础数据
+allowed_tools: 
+    - 查询工位组工位列表
 ---
 
 # 工位数据引导参考文件
@@ -13,39 +15,39 @@ description: 工位基础数据
 ### 基础查询工位数据
 ```javascript
 //分页
-callTool("查询工位组工位列表", {})
+callTool("查询工位组工位列表", {data: {} })
 //指定页码和每页大小
-callTool("查询工位组工位列表", {size:10, current:1}
+callTool("查询工位组工位列表", {data: {size:10, current:1} })
 //指定工位名称
-callTool("查询工位组工位列表", {keyWord: "工位1"})
+callTool("查询工位组工位列表", {data: {keyWord: "工位1"} })
 //指定工位编号
-callTool("查询工位组工位列表", {keyWord: "judy001"})
+callTool("查询工位组工位列表", {data: {keyWord: "judy001"} })
 //状态启用工位
-callTool("查询工位组工位列表", {status: 1})
+callTool("查询工位组工位列表", {data: {status: 1} })
 //状态停用工位
-callTool("查询工位组工位列表", {status: 0})
+callTool("查询工位组工位列表", {data: {status: 0} })
 //人工工位
-callTool("查询工位组工位列表", {type:1})
+callTool("查询工位组工位列表", {data: {type:1} })
 //机器工位
-callTool("查询工位组工位列表", {type:2})
+callTool("查询工位组工位列表", {data: {type:2} })
 //所有类型
-callTool("查询工位组工位列表", {type: ""})
+callTool("查询工位组工位列表", {data: {type: ""} })
 //列出所有工位
-callTool("查询工位组工位列表", {size: -1})
+callTool("查询工位组工位列表", {data: {size: -1} })
 ```
 
 ### 根据工位组名称查询组下工位数据
 ```javascript
 //工位组名称获取工位组
-group = callTool("查询工位组", {name: "工位组名称"})
-workstaitons =  callTool("查询工位组工位列表", {group_id: group.id })
+group = callTool("查询工位组", {params: {name: "工位组名称"}})
+workstaitons =  callTool("查询工位组工位列表", {data: {group_id: group.id }})
 return workstaitons
 ```
 
 ### 统计工位组下工位数量
 ```javascript
 // 1. 获取所有工位组列表 (Array)
-var group_list = callTool("查询工位组", {});
+var group_list = callTool("查询工位组", {data: {}});
 var result = [];
 
 // 2. 遍历工位组，组装数据
